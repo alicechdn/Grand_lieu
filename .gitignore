@@ -37,4 +37,47 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# les data
 DATA/
+data/
+data_brut/
+DATA_BRUT/
+
+#les sortie
+OUTPUT/
+output/
+resultats/
+RESULTATS/
+
+#quelques extention
+*.pdf
+*.pjg
+*.zip
+*.gz
+*.Rdata
+*.rds
+*.r#
+*.rmd~
+*.nc
+*.org
+*.org~
+*.zip
+_*.sql
+*.png
+*.jpeg
+*.tiff
+
+# un dossier SIG 
+sig/
+SIG/
+
+#les fichier SIG
+*.dbf
+*.prj
+*.qpj
+*.shp
+*.shx
+
+# les fichier perso
+my_*
