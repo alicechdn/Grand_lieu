@@ -1,5 +1,5 @@
 ###################### PARTIE 1 - CREATION DU JDD -----------------------------
-############## 1 - CHARGEMENT DU JDD BRUT ########
+############## 1 - CHARGEMENT DU JDD BRUT : pod ########
 
 
 #setwd("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/DATA")
@@ -16,31 +16,32 @@ dim(pod)# dimensions : nbre de lignes puis de colonnes
 ############## 2 - CREATION DU JDD EXPLOITABLE SUR R - une ligne par obs ##############
 
 
-####### a - Nettoyer lignes et colonnes et renommer variables #####
+####### a - Nettoyer lignes et colonnes et renommer variables : pod2 #####
 
 
-pod<-subset(pod, Site != "TOTAL")#subset pour tout garder sauf les lignes total (avec !=)
-pod <- pod[,-c(3:4)]#enlever lat et long
-pod[is.na(pod)] <- 0#remplacer les na par des 0 
-colnames(pod)[1:2] <- c("ANNEE","SITE")#renommer les colonnes
-dim(pod)#dimensions : on a 20 lignes en moins et deux colonnes en moins? alors c est ok
-View(pod)
+pod2<-subset(pod, Site != "TOTAL")#subset pour tout garder sauf les lignes total (avec !=)
+pod2 <- pod2[,-c(3:4)]#enlever lat et long en colonne 3 et 4 
+pod2[is.na(pod2)] <- 0#remplacer les na par des 0 
+colnames(pod2)[1:2] <- c("ANNEE","SITE")#renommer les colonnes
+dim(pod2)#dimensions : on a 20 lignes en moins et deux colonnes en moins? alors c est ok
+View(pod2)
 
 
-####### b - Basculer le jdd en 1 ligne = 1 observation #####
+####### b - Basculer le jdd en 1 ligne = 1 observation : PE #####
 
 
 #Fonction reshape pour restructurer le jdd
 #melt permet de passer des colonnes en lignes, en creant une nouvelle variable a partir de ces lignes 
-PE <- reshape2::melt(pod,id=c("ANNEE","SITE"),value.name = "ABONDANCE")
+PE <- reshape2::melt(pod2,id=c("ANNEE","SITE"),value.name = "ABONDANCE")
 colnames(PE)[3] <- "ESPECE"
 
 
 ############## 3 - CREATION DES JDD DE VARIABLES EXPLICATIVES -----------------
 ####### a - Les points GPS des points d ecoute : pod_site #####
 
-
-pod_site <- unique(pod[,3:4])
+pod_site = subset(pod2, ANNEE == "2002" )
+pod_site <- unique(pod[,2:4])
+View(pod_site) 
 
 ####### b - Caractéristique de l'habitat : ######
 
@@ -48,8 +49,6 @@ pod_site <- unique(pod[,3:4])
 
 ####### c - Les noms vernaculaires des oiseaux : code_crbpo #####
 
-
-#library(readxl) # au cas ou il faut la relancer
 library(readxl)
 code_crbpo <- read_excel("DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
 titre<-c("ESPECE", "NOM_FR_BIRD")#nom des variables dans la matrice
@@ -89,8 +88,6 @@ rea # si egal à 0 alors c est ok
 
 ####### e - Le poids des esp, leur regime alimentaire et autre : geb #####
 
-
-
 #chargement du jdd avec les poids moyen des esp 
 #attention triche : je l ai converti en csv 
 library(readr)
@@ -109,7 +106,7 @@ PE <- merge(PEc,geb, all.x = TRUE, by.x = "ESPECE", by.y = "CODE")#fusion des de
 
 ####### f - Gradient de specialisation : ind_fonction  #######
 
-library(readr)#######
+library(readr)
 ind_fonction<- read_csv("DATA/espece_indicateur_fonctionel.csv")
 View(ind_fonction)
 ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" , ind_fonction$pk_species)
@@ -119,7 +116,7 @@ ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" 
 
 ####### g - La meteo de grand lieu : meteo_gl #######
 
-library(readr) #######
+library(readr) 
 meteo_gl<- read_csv2("DATA/AnnualData19602021.csv")
 View(meteo_gl)
 summary(meteo_gl)
