@@ -43,6 +43,8 @@ pod_site = subset(pod2, ANNEE == "2002" )
 pod_site <- unique(pod[,2:4])
 View(pod_site) 
 
+#il faut ajouter les caracteristiques de chaque point + est-ce que le point a changer de milieu 
+
 ####### b - Caractéristique de l'habitat : ######
 
 #### en attente des donnees 
