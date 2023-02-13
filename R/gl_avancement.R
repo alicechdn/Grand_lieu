@@ -50,6 +50,7 @@ pod_site <- unique(pod[,3:4])
 
 
 #library(readxl) # au cas ou il faut la relancer
+library(readxl)
 code_crbpo <- read_excel("DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
 titre<-c("ESPECE", "NOM_FR_BIRD")#nom des variables dans la matrice
 colnames(code_crbpo) <-titre
@@ -106,15 +107,27 @@ View(geb)
 PE <- merge(PEc,geb, all.x = TRUE, by.x = "ESPECE", by.y = "CODE")#fusion des deux jdd 
 
 
-
-
 ####### f - Gradient de specialisation : ind_fonction  #######
 
-
-library(readr)
+library(readr)#######
 ind_fonction<- read_csv("DATA/espece_indicateur_fonctionel.csv")
 View(ind_fonction)
 ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" , ind_fonction$pk_species)
 #j ai remplace directement dans la variable pk_species 
 
 
+
+####### g - La meteo de grand lieu : meteo_gl #######
+
+library(readr) #######
+meteo_gl<- read_csv2("DATA/AnnualData19602021.csv")
+View(meteo_gl)
+summary(meteo_gl)
+
+
+####### h - Les niveaux d'eaux de GL  #######
+
+library(readxl)
+niv_eau <- read_excel("DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
+summary(niv_eau)
+#remettre dans le bon ordre le jdd avec reshape ? 
