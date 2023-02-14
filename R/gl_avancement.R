@@ -94,7 +94,7 @@ rea # si egal à 0 alors c est ok
 #attention triche : je l ai converti en csv 
 library(readr)
 geb <- read.csv2("DATA/geb12127-sup-0002-ap.csv",skip = 6)# skip pour sauter les premieres lignes 
-geb$CODE <- casefold(geb$CODE, upper=T)#permet de tout mettre en majuscule (pour merge apres)
+geb$code <- casefold(geb$code, upper=T)#permet de tout mettre en majuscule (pour merge apres)
 #/!\ CODE CRBPO A CORRIGER /// meme oiseau == autre nom 
 geb$code_crbpo <- ifelse(geb$code == "LANSEN" , "LANSER" , geb$code) # maj des codes crbpo
 #expl de la fontion : SI (...condition... , ALORS ... , SINON ...)
@@ -103,7 +103,7 @@ summary(geb)
 View(geb)
 #geb$POIDS <- as.numeric(geb$POIDS) #ne pas faire pour l'instant car introduit des NA
 
-PE <- merge(PEc,geb, all.x = TRUE, by.x = "ESPECE", by.y = "CODE")#fusion des deux jdd 
+PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
 
 
 ####### f - Gradient de specialisation : ind_fonction  #######
