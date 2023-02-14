@@ -122,6 +122,18 @@ library(readr)
 meteo_gl<- read_csv2("DATA/AnnualData19602021.csv")
 View(meteo_gl)
 summary(meteo_gl)
+#temperature moyenne par an 
+TM_y <- ave(meteo_gl$TM,meteo_gl$Date_y)
+cbind(meteo_gl,TM_y)
+
+#il faudrait la temperature pour le printemps et aussi celui de l'hiver precedent 
+#il faudrait deux conditions : annee et mois 
+#ou supprimer les mois qu'on ne veut pas ? 
+
+#extraire les mois de printemps puis calculer moyennes par an ? 
+
+
+
 
 
 ####### h - Les niveaux d'eaux de GL  #######
