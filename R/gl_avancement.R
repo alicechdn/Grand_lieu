@@ -157,11 +157,16 @@ meteo_gl
 
 meteo_gl_spring<-subset(meteo_gl, Date_m == 5 | Date_m == 6 | Date_m == 7 )#pour les mois de mai à juillet 
 #la barre verticale permet de creer "OU" et donc de mettre +ieurs nombres
-tt_spring <- ave(meteo_gl_spring$TM,meteo_gl_spring$Date_m)
-rr_spring <- ave(meteo_gl_spring$RR,meteo_gl_spring$Date_m)
+tt_spring <- ave(meteo_gl_spring$TM,meteo_gl_spring$Date_y)
+rr_spring <- ave(meteo_gl_spring$RR,meteo_gl_spring$Date_y)
 meteo_gl_spring<- cbind(meteo_gl_spring,tt_spring,rr_spring)
 summary(meteo_gl_spring)
 View(meteo_gl_spring)
+
+#il faut une valeur par an, donc ca ne va pas ce que j'ai fait, ici on a une valeur par mois 
+
+
+#il reste a faire les temperatures de l'hiver precedent, donc prendre de novembre n-1 à fevrier n 
 
 
 
