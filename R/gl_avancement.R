@@ -124,17 +124,33 @@ View(meteo_gl)
 summary(meteo_gl)
 #temperature moyenne par an 
 TM_y <- ave(meteo_gl$TM,meteo_gl$Date_y)
+TM_y
+ave(breaks, tension, FUN = function(x) mean(x, trim = 0.1))
 cbind(meteo_gl,TM_y)
-
+meteo_gl
 #il faudrait la temperature pour le printemps et aussi celui de l'hiver precedent 
 #il faudrait deux conditions : annee et mois 
 #ou supprimer les mois qu'on ne veut pas ? 
 
 #extraire les mois de printemps puis calculer moyennes par an ? 
+meteo_gl$RR <- as.numeric(meteo_gl$RR)
+meteo_gl$Date_m <- as.numeric(meteo_gl$Date_m)
+meteo_gl_spring<-subset(meteo_gl, Date_m == 5 | Date_m == 6 | Date_m == 7 )#pour les mois de mai à juillet 
+#la barre verticale permet de creer "OU" et donc de mettre +ieurs nombres
+
+meteo_gl_spring<- cbind(meteo_gl_spring,ave(meteo_gl_spring$TM,meteo_gl_spring$Date_m))
+
+#on a une valeur = à NA dans le jdd et j'ai l'impression que c'est pour ca que ca ne fonctionne pas : 
+#on va la supprimer  
+#student[!is.na(student$science),] 
 
 
-
-
+meteo_gl_spring <- meteo_gl_spring[!is.na(meteo_gl_spring$RR),] 
+#drop_na(nom_de_la_colonne) #autre facon de supprimer les NA 
+summary(meteo_gl_spring)
+meteo_gl_spring<- cbind(meteo_gl_spring,ave(meteo_gl_spring$RR,meteo_gl_spring$Date_m))
+View(meteo_gl_spring)
+#cetait donc bien le na qui bloquait tout/ est ce que cela va poser probleme de lavoir supprimer ? 
 
 ####### h - Les niveaux d'eaux de GL  #######
 
