@@ -137,10 +137,13 @@ library(readr)
 meteo_gl<- read_csv2("DATA/AnnualData19602021.csv")
 View(meteo_gl)
 summary(meteo_gl)
+dim(meteo_gl)
 meteo_gl$RR <- as.numeric(meteo_gl$RR) #mettre en numerique ce dont on a besoin 
 meteo_gl$Date_m <- as.numeric(meteo_gl$Date_m)
 meteo_gl <- meteo_gl[!is.na(meteo_gl$RR),] # supprimer la valeur egal a NA /!\ est ce que jai bien fait ?
 #drop_na(nom_de_la_colonne) #autre facon de supprimer les NA 
+dim(meteo_gl)#1 ligne en moins, on avait 1 na ---> c est ok 
+
 
 #faire les calculs/synthese et 
 TM_y <- ave(meteo_gl$TM,meteo_gl$Date_y)#temperature moyenne par an 
@@ -163,7 +166,6 @@ meteo_gl_spring<- cbind(meteo_gl_spring,tt_spring,rr_spring)
 summary(meteo_gl_spring)
 View(meteo_gl_spring)
 
-#il faut une valeur par an, donc ca ne va pas ce que j'ai fait, ici on a une valeur par mois 
 
 
 #il reste a faire les temperatures de l'hiver precedent, donc prendre de novembre n-1 à fevrier n 
@@ -172,25 +174,12 @@ View(meteo_gl_spring)
 
 #maintenant il faudrait faire un merge pour avoir annee - TM - RR 
 
-
-
 meteo_synthese<-matrix(c(2002:max(meteo_gl$Date_y)),byrow = TRUE, ncol = 1)#a voir si ca fonctionne 
 colnames(meteo_synthese)[1] <- c("ANNEE")
-?merge
-synth_meteo <- merge(meteo_synthese,meteo_gl_spring, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")
-
-
-
-
-
-
-
-
-
-
-
-
-
+#peut etre il faut supprimer ce dont je n'ai pas besoin 
+meteo_gl_spring_simp <-cbind(meteo_gl_spring[4], meteo_gl_spring[14:17])
+synth_meteo <- merge(meteo_synthese,meteo_gl_spring_simp, all.x = TRUE, all.y = FALSE, by.x = "ANNEE", by.y = "Date_y")
+#je n'arrive pas a faire le merge correctement 
 
 
 
