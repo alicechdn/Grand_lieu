@@ -53,8 +53,7 @@ View(pod_site)
 
 library(readxl)
 code_crbpo <- read_excel("DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
-titre<-c("ESPECE", "NOM_FR_BIRD")#nom des variables dans la matrice
-colnames(code_crbpo) <-titre
+colnames(code_crbpo) <- c("ESPECE", "NOM_FR_BIRD")#nom des variables dans la matrice
 View(code_crbpo)#visualisation du jdd
 dim(PE)
 #jonction du jdd principal avec code_crbpo pour avoir les noms vernaculaires dans le jdd 
@@ -164,12 +163,11 @@ View(meteo_gl_spring)
 #maintenant il faudrait faire un merge pour avoir annee - TM - RR 
 
 meteo_synthese<-matrix(c(2002:2022),byrow = TRUE, ncol = 1)#il faut automatiser le 2022 
-colnames(meteo_synthese)[1] <- c("ANNEE")
+colnames(meteo_synthese)[1] <- "ANNEE"
 #peut etre il faut supprimer ce dont je n'ai pas besoin 
 meteo_gl_spring_simp <-cbind(meteo_gl_spring[4], meteo_gl_spring[14:17])
 synth_meteo <- merge(meteo_synthese,meteo_gl_spring_simp, all.x = TRUE, all.y = FALSE, by.x = "ANNEE", by.y = "Date_y")
 #je n'arrive pas a faire le merge correctement 
-
 
 
 ####### h - Les niveaux d'eaux de GL  #######
@@ -178,6 +176,9 @@ library(readxl)
 niv_eau <- read_excel("DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
 summary(niv_eau)
 #remettre dans le bon ordre le jdd avec reshape ? 
+
+
+
 ############## 4 - Analyses descriptives du jdd #######
 
 #les questions qu'on se pose : 
@@ -189,13 +190,12 @@ summary(niv_eau)
 PE_obs<-subset(PE, ABONDANCE != 0 )
 PE_obs
 
-#graph de chaque variable 
-plot(PE_obs$ABONDANCE)
-hist(PE_obs$ABONDANCE) 
-
-####### a - La variable reponse ####### 
+####### a - La variable reponse : ABONDANCE ####### 
 #VARIABLE REPONSE == ABONDANCE
-summary(PE$ABONDANCE)#fonctionne pour continue ou discret
+plot(PE_obs$ABONDANCE)
+hist(PE_obs$ABONDANCE) #bcp bcp de petites valeurs
+summary(PE$ABONDANCE)
+summary(PE_obs$ABONDANCE)#+ de 50% des valeurs sont des 1 ; max a 700 indiv
 table(PE_obs$ABONDANCE)
 table(PE$ABONDANCE)
 table(PE$ABONDANCE >= 1)
@@ -203,49 +203,85 @@ table(PE$ABONDANCE >=1)[2]/length(PE$ABONDANCE)*100 #pour differencier le 0 des 
 hist(data$nb_pulli_envol, xlab = "nbre bb envol", ylab = "frequence", main= "Frequence du nombre de jeunes ? l'envol par nid")
 
 mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
+#variance +++ a cause des quelques valeurs tres hautes ? 
 
+####### b - La variable SITE : les points d ecoutes #######
 
-####### b -Les autres variables #######
-
-#####SITE
+#exploration de base : 
 length(unique(PE$SITE)) #le nombre de points d ecoute #probleme, 119 ou 120 ?? 
-#levels(PE$SITE)#pourquoi NULL ? 
-summary(PE$SITE)#pas grand interet 
-table(PE$SITE)# pas grand interet 
-#comment faire pour avoir le nombre de sites ou sont present chaque espèce ? 
+summary(PE$SITE)#pas grand interet ? 
+table(PE$SITE)# pas grand interet ?
+table(PE_obs$SITE)#nombre d observation par site 
+hist(table(PE_obs$SITE))
+
+#Nombre d'oiseaux (en abondance (donc pas tres pertinent?)) par site :
+AB_site <- aggregate(ABONDANCE ~ SITE, data = PE_obs, FUN = sum)#fonction aggregate pour fusionner des infos ensemble 
+colnames(AB_site)[2] <- "nb_bird"#renomme variable ABONDANCE
+#Graphique : 
+barplot(AB_site$nb_bird, names.arg = AB_site$SITE, xlab = "Site", ylab = "Nombre d'oiseaux", main = "Nombre d'oiseaux par site")
+
+#Richesse specifique par site, toute année confondu : 
+RS_site<- aggregate(ESPECE ~ SITE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(RS_site)[2] <- "RS"
+#representation graphique 
+par(las=2)#fonction qui permet d'orienter les noms des axes
+barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site", ylab = "Nombre d'espèces", main = "Richesse spécifique par site", cex.names = 0.5)
 
 
-
-
-
-#####ANNEE
+####### c - La variable ANNEE #######
+summary(PE$ANNEE)
 max(PE$ANNEE)-min(PE$ANNEE)#Le nombre d annees de suivi est de
 table(PE_obs$ANNEE) #le nombre total d'obs par annee est de 
-summary(PE$ANNEE)
 plot(table(PE_obs$ANNEE), main = "Nombre d'observations d'oiseaux par an ", xlab = "Année", ylab = "obs d'oiseaux")
 #faire un truc + beau apres 
 
-#####ESPECE
+#Quantité d'oiseaux au cours du temps 
+AB_year <- aggregate(ABONDANCE ~ ANNEE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(AB_year)[2] <- "nb_bird"
+AB_lm <- lm(nb_bird~ANNEE, data = AB_year)#la quantite d oiseaux n a pas l air de changer 
+#resultat a prendre avec des pincettes car comptage particulier 
+summary(AB_lm)
+#graphique 
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(AB_year$nb_bird, names.arg = AB_year$ANNEE, xlab = "Année", 
+        ylab = "Quantité d'oiseaux", main = "Nombre d'oiseaux par année", cex.names = 0.8)
+
+
+# Richesse spécifique par année, tout site confondu : 
+RS_year <- aggregate(ESPECE ~ ANNEE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(RS_year)[2] <- "RS"
+RS_lm <- lm(RS~ANNEE, data = RS_year)
+summary(RS_lm)# on tend vers une baisse de la RS, quasi-significatif
+# Graphique :
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et année", 
+        ylab = "Nombre d'espèces", main = "Nombre d'espèces d'oiseaux par année", cex.names = 0.8)
+
+# Ajout de la ligne de tendance 
+abline(coef(RS_lm), col = "red")
+lines(loess(bb$ESPECE ~ bb$ANNEE), col = "red")
+mean_by_year <- tapply(bb$ESPECE, bb$ANNEE, mean)
+lines(names(mean_by_year), mean_by_year, type = "l", col = "red")
+#rien ne fonctionne ?! 
+
+
+####### d - La variable ESPECE ######
 length(unique(PE$ESPECE)) #est le nombre d espece vu dans ce protocole, toutes annees confondues 
 table(PE_obs$NOM_FR_BIRD)#le nombre de fois ou chaque esp a ete vu, toutes annees confondue 
 barplot(table(PE_obs$NOM_FR_BIRD))#visualisation de la ligne d'au dessus 
 barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),length(unique(PE$ESPECE)) )) #meme chose avec les espèce dans l'ordre d'obs
 pie(table(PE_obs$NOM_FR_BIRD))#le camembert pas très lisible mais permet tout de meme de visualiser quelques especes tres presente
 
-prop.table( table(PE_obs$NOM_FR_BIRD))#pour le mettre en pourcentage, pas tres pertinent
 
 #LES 10 + VU
 tail(sort(table(PE_obs$NOM_FR_BIRD)),10)#me donne les 10 + grandes valeurs 
 pie(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))#camembert des 10 + presents
 barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))
 
-# POURCENTAGES 
-prop.table (table (PE_obs$ANNEE)) 
-#regarder des relations 
-plot(PE_obs$ESPECE~PE_obs$ANNEE)
-boxplot(PE_obs$ESPECE~PE_obs$ANNEE)
+#Pour l'année 2002, nous avons : 
+table(PE_obs$NOM_FR_BIRD[PE_obs$ANNEE == "2002"])
+length(unique(PE_obs$ESPECE[PE_obs$ANNEE==2002])) #RS en 2002 est :
 
-hist(PE_obs$ESPECE~PE_obs$SITE)
-plot(PE_obs$ABONDANCE~PE_obs$ESPECE)
+#comment faire pour avoir le nombre de sites ou sont present chaque espèce ?
+#refaire fonction agregate mais dans l'autre sens 
 
-hist(PE_obs$ESPECE)
