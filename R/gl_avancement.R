@@ -39,7 +39,7 @@ colnames(PE)[3] <- "ESPECE"
 ############## 3 - CREATION DES JDD DE VARIABLES EXPLICATIVES -----------------
 ####### a - Les points GPS des points d ecoute : pod_site #####
 
-pod_site = subset(pod2, ANNEE == "2002" )
+#pod_site = subset(pod2, ANNEE == "2002" ) # qu'est ce que cest que cette ligne que j ai fait 
 pod_site <- unique(pod[,2:4])
 View(pod_site) 
 
@@ -60,7 +60,7 @@ dim(PE)
 #jonction du jdd principal avec code_crbpo pour avoir les noms vernaculaires dans le jdd 
 PE <- merge(PE,code_crbpo, all.x = TRUE, by = "ESPECE")
 dim(PE)#verif que merge fonctionne
-#reprendre l ordre des colonnes
+#Pour reprendre l ordre des colonnes : 
 library(dplyr)
 PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des colonnes
 View(PE)
@@ -74,8 +74,10 @@ library(readr)
 info_esp <- read_csv("DATA/espece.csv")
 View(info_esp)
 summary(info_esp)
+#Faire la correction du code crbpo diff entre les jdd :
 info_esp$code_crbpo <- ifelse(info_esp$pk_species == "LANSEN" , "LANSER" , info_esp$pk_species)
-#Jonction des deux jdd 
+#fonction ifelse = ptite boucle avec Si ... alors ... sinon ...) 
+#Jonction des deux jdd : 
 PE_info <- merge(PE,info_esp, all.x = TRUE, by.x = "ESPECE", by.y = "code_crbpo")
 #PE_info <- PE_info[,-c(6:17)]#pour ne garder que les colonnes qui m interesse
 View(PE_info)
@@ -116,21 +118,6 @@ ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ####### g - La meteo de grand lieu : meteo_gl #######
 
 library(readr) 
@@ -156,9 +143,9 @@ RR_y
 meteo_gl <- cbind(meteo_gl,RR_y)
 meteo_gl
 
-#extraire les mois de printemps puis calculer moyennes par an 
+#extraire les mois de printemps puis calculer moyennes par an :
 
-meteo_gl_spring<-subset(meteo_gl, Date_m == 5 | Date_m == 6 )#pour les mois de mai à juillet 
+meteo_gl_spring<-subset(meteo_gl, Date_m == 5 | Date_m == 6 )#pour les mois de mai et juin 
 #la barre verticale permet de creer "OU" et donc de mettre +ieurs nombres 
 tt_spring <- ave(meteo_gl_spring$TM,meteo_gl_spring$Date_y)
 rr_spring <- ave(meteo_gl_spring$RR,meteo_gl_spring$Date_y)
@@ -169,12 +156,14 @@ View(meteo_gl_spring)
 
 
 #il reste a faire les temperatures de l'hiver precedent, donc prendre de novembre n-1 à fevrier n 
+#apres discussion avec Seb, temp de l'hiver n'est pas perninent mais nbre de jours de gels est pertinent ++ 
+# donc il faut le nombre de jours en dessous de (0, -2, que choisir?) et faire une variable " jour de gel"
 
 
 
 #maintenant il faudrait faire un merge pour avoir annee - TM - RR 
 
-meteo_synthese<-matrix(c(2002:max(meteo_gl$Date_y)),byrow = TRUE, ncol = 1)#a voir si ca fonctionne 
+meteo_synthese<-matrix(c(2002:2022),byrow = TRUE, ncol = 1)#il faut automatiser le 2022 
 colnames(meteo_synthese)[1] <- c("ANNEE")
 #peut etre il faut supprimer ce dont je n'ai pas besoin 
 meteo_gl_spring_simp <-cbind(meteo_gl_spring[4], meteo_gl_spring[14:17])
@@ -204,7 +193,7 @@ PE_obs
 plot(PE_obs$ABONDANCE)
 hist(PE_obs$ABONDANCE) 
 
-### VARIABLES REPONSES ### 
+####### a - La variable reponse ####### 
 #VARIABLE REPONSE == ABONDANCE
 summary(PE$ABONDANCE)#fonctionne pour continue ou discret
 table(PE_obs$ABONDANCE)
@@ -216,7 +205,7 @@ hist(data$nb_pulli_envol, xlab = "nbre bb envol", ylab = "frequence", main= "Fre
 mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
 
 
-### AUTRES VARIABLES ### 
+####### b -Les autres variables #######
 
 #####SITE
 length(unique(PE$SITE)) #le nombre de points d ecoute #probleme, 119 ou 120 ?? 
