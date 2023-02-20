@@ -158,8 +158,8 @@ meteo_gl
 
 #extraire les mois de printemps puis calculer moyennes par an 
 
-meteo_gl_spring<-subset(meteo_gl, Date_m == 5 | Date_m == 6 | Date_m == 7 )#pour les mois de mai à juillet 
-#la barre verticale permet de creer "OU" et donc de mettre +ieurs nombres
+meteo_gl_spring<-subset(meteo_gl, Date_m == 5 | Date_m == 6 )#pour les mois de mai à juillet 
+#la barre verticale permet de creer "OU" et donc de mettre +ieurs nombres 
 tt_spring <- ave(meteo_gl_spring$TM,meteo_gl_spring$Date_y)
 rr_spring <- ave(meteo_gl_spring$RR,meteo_gl_spring$Date_y)
 meteo_gl_spring<- cbind(meteo_gl_spring,tt_spring,rr_spring)
@@ -189,3 +189,74 @@ library(readxl)
 niv_eau <- read_excel("DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
 summary(niv_eau)
 #remettre dans le bon ordre le jdd avec reshape ? 
+############## 4 - Analyses descriptives du jdd #######
+
+#les questions qu'on se pose : 
+#Comment s'organise la repartition de la communaute entre les regimes alimentaires ? 
+#Combien d'especes a-t-on au cours des ans ? 
+#Indices de diversite ? 
+
+#POUR LA DESCRIPTION JE CREE UN JDD SANS LES 0 
+PE_obs<-subset(PE, ABONDANCE != 0 )
+PE_obs
+
+#graph de chaque variable 
+plot(PE_obs$ABONDANCE)
+hist(PE_obs$ABONDANCE) 
+
+### VARIABLES REPONSES ### 
+#VARIABLE REPONSE == ABONDANCE
+summary(PE$ABONDANCE)#fonctionne pour continue ou discret
+table(PE_obs$ABONDANCE)
+table(PE$ABONDANCE)
+table(PE$ABONDANCE >= 1)
+table(PE$ABONDANCE >=1)[2]/length(PE$ABONDANCE)*100 #pour differencier le 0 des autres 
+hist(data$nb_pulli_envol, xlab = "nbre bb envol", ylab = "frequence", main= "Frequence du nombre de jeunes ? l'envol par nid")
+
+mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
+
+
+### AUTRES VARIABLES ### 
+
+#####SITE
+length(unique(PE$SITE)) #le nombre de points d ecoute #probleme, 119 ou 120 ?? 
+#levels(PE$SITE)#pourquoi NULL ? 
+summary(PE$SITE)#pas grand interet 
+table(PE$SITE)# pas grand interet 
+#comment faire pour avoir le nombre de sites ou sont present chaque espèce ? 
+
+
+
+
+
+#####ANNEE
+max(PE$ANNEE)-min(PE$ANNEE)#Le nombre d annees de suivi est de
+table(PE_obs$ANNEE) #le nombre total d'obs par annee est de 
+summary(PE$ANNEE)
+plot(table(PE_obs$ANNEE), main = "Nombre d'observations d'oiseaux par an ", xlab = "Année", ylab = "obs d'oiseaux")
+#faire un truc + beau apres 
+
+#####ESPECE
+length(unique(PE$ESPECE)) #est le nombre d espece vu dans ce protocole, toutes annees confondues 
+table(PE_obs$NOM_FR_BIRD)#le nombre de fois ou chaque esp a ete vu, toutes annees confondue 
+barplot(table(PE_obs$NOM_FR_BIRD))#visualisation de la ligne d'au dessus 
+barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),length(unique(PE$ESPECE)) )) #meme chose avec les espèce dans l'ordre d'obs
+pie(table(PE_obs$NOM_FR_BIRD))#le camembert pas très lisible mais permet tout de meme de visualiser quelques especes tres presente
+
+prop.table( table(PE_obs$NOM_FR_BIRD))#pour le mettre en pourcentage, pas tres pertinent
+
+#LES 10 + VU
+tail(sort(table(PE_obs$NOM_FR_BIRD)),10)#me donne les 10 + grandes valeurs 
+pie(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))#camembert des 10 + presents
+barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))
+
+# POURCENTAGES 
+prop.table (table (PE_obs$ANNEE)) 
+#regarder des relations 
+plot(PE_obs$ESPECE~PE_obs$ANNEE)
+boxplot(PE_obs$ESPECE~PE_obs$ANNEE)
+
+hist(PE_obs$ESPECE~PE_obs$SITE)
+plot(PE_obs$ABONDANCE~PE_obs$ESPECE)
+
+hist(PE_obs$ESPECE)
