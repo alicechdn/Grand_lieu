@@ -193,6 +193,9 @@ summary(niv_eau)
 PE_obs<-subset(PE, ABONDANCE != 0 )
 PE_obs
 
+PE_obs_info <-subset(PE_info, ABONDANCE != 0 )
+View(PE_obs_info)
+
 ####### a - La variable reponse : ABONDANCE ####### 
 #VARIABLE REPONSE == ABONDANCE
 plot(PE_obs$ABONDANCE)
@@ -207,6 +210,11 @@ hist(data$nb_pulli_envol, xlab = "nbre bb envol", ylab = "frequence", main= "Fre
 
 mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
 #variance +++ a cause des quelques valeurs tres hautes ? 
+
+
+
+
+
 
 ####### b - La variable SITE : les points d ecoutes #######
 
@@ -229,6 +237,10 @@ colnames(RS_site)[2] <- "RS"
 #representation graphique 
 par(las=2)#fonction qui permet d'orienter les noms des axes
 barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site", ylab = "Nombre d'espèces", main = "Richesse spécifique par site", cex.names = 0.5)
+
+
+
+
 
 
 ####### c - La variable ANNEE #######
@@ -268,19 +280,22 @@ lines(names(mean_by_year), mean_by_year, type = "l", col = "red")
 #rien ne fonctionne ?! 
 
 
+
+
+
+
 ####### d - La variable ESPECE ######
+#Stats de base :
 length(unique(PE$ESPECE)) #est le nombre d espece vu dans ce protocole, toutes annees confondues 
 table(PE_obs$NOM_FR_BIRD)#le nombre de fois ou chaque esp a ete vu, toutes annees confondue 
 barplot(table(PE_obs$NOM_FR_BIRD))#visualisation de la ligne d'au dessus 
 barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),length(unique(PE$ESPECE)) )) #meme chose avec les espèce dans l'ordre d'obs
 pie(table(PE_obs$NOM_FR_BIRD))#le camembert pas très lisible mais permet tout de meme de visualiser quelques especes tres presente
-
-
+#Quelques explorations par curiosite : 
 #LES 10 + VU
 tail(sort(table(PE_obs$NOM_FR_BIRD)),10)#me donne les 10 + grandes valeurs 
 pie(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))#camembert des 10 + presents
 barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))
-
 #Pour l'année 2002, nous avons : 
 table(PE_obs$NOM_FR_BIRD[PE_obs$ANNEE == "2002"])
 length(unique(PE_obs$ESPECE[PE_obs$ANNEE==2002])) #RS en 2002 est :
@@ -303,4 +318,24 @@ abline(h = median(ES_PE$nb_PE), col = "darkred", lty = 2)# Ajout de la ligne de 
 
 
   
+
+
+####### e - Les groupes taxonomiques #######
+
+#ORDRE TAXONOMIQUE 
+GT <- aggregate(ESPECE ~ order_tax, data = PE_obs_info, FUN = function(x) length(unique(x)))
+colnames(GT) <- c("GPTAX", "NB_ESP")
+GT <-GT[order(GT$NB_ESP),]
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(GT$NB_ESP, names.arg = GT$GPTAX, xlab = "groupe taxo", 
+        ylab = "nombre d'especes", main = "Nombre d'espèces d'oiseaux par groupe taxonomique", cex.names = 0.8)
+#le groupe des passereaux est largement represente dans le jdd 
+
+#FAMILLE TAXONOMIQUE 
+GT2 <- aggregate(ESPECE ~ family_tax, data = PE_obs_info, FUN = function(x) length(unique(x)))
+colnames(GT2) <- c("FMTAX", "NB_ESP")
+GT2 <-GT2[order(GT2$NB_ESP),]
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(GT2$NB_ESP, names.arg = GT2$FMTAX, xlab = "FAMILLE taxo", 
+        ylab = "nombre d'especes", main = "Nombre d'espèces d'oiseaux par famille", cex.names = 0.8)
 
