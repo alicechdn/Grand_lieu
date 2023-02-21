@@ -40,8 +40,10 @@ colnames(PE)[3] <- "ESPECE"
 ####### a - Les points GPS des points d ecoute : pod_site #####
 
 #pod_site = subset(pod2, ANNEE == "2002" ) # qu'est ce que cest que cette ligne que j ai fait 
+#c'est bon j'ai compris c'était pour ne pas repeter les points d'ecoute mais enfait c'est inutile, pas besoin de le faire 
 pod_site <- unique(pod[,2:4])
-View(pod_site) 
+pod_site<-subset(pod_site, Site != "TOTAL")#garder tout sauf ligne total 
+View(pod_site) #120 lignes = 120 points d ecoute ---> c'est ok
 
 #il faut ajouter les caracteristiques de chaque point + est-ce que le point a changer de milieu 
 
