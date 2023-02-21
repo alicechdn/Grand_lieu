@@ -46,6 +46,7 @@ pod_site<-subset(pod_site, Site != "TOTAL")#garder tout sauf ligne total
 View(pod_site) #120 lignes = 120 points d ecoute ---> c'est ok
 
 #il faut ajouter les caracteristiques de chaque point + est-ce que le point a changer de milieu 
+#apres discussion : si le point a change de milieu = pas pertinent 
 
 ####### b - Caractéristique de l'habitat : ######
 
@@ -60,7 +61,7 @@ View(code_crbpo)#visualisation du jdd
 dim(PE)
 #jonction du jdd principal avec code_crbpo pour avoir les noms vernaculaires dans le jdd 
 PE <- merge(PE,code_crbpo, all.x = TRUE, by = "ESPECE")
-dim(PE)#verif que merge fonctionne
+dim(PE)#verif que merge fonctionne / 1 colonne en + = c'est ok 
 #Pour reprendre l ordre des colonnes : 
 library(dplyr)
 PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des colonnes
@@ -85,8 +86,8 @@ View(PE_info)
 #/!\ Attention /!\ 
 #saisi des codes crbpo diff entre les jdd 
 #il faut verifier que tous les codes soient les memes :
-rea <- unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
-rea # si egal à 0 alors c est ok 
+unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
+# si egal à 0 alors c est ok 
 
 
 
@@ -261,8 +262,8 @@ barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et année",
 
 # Ajout de la ligne de tendance 
 abline(coef(RS_lm), col = "red")
-lines(loess(bb$ESPECE ~ bb$ANNEE), col = "red")
-mean_by_year <- tapply(bb$ESPECE, bb$ANNEE, mean)
+lines(loess(RS_year$RS ~ RS_year$ANNEE), col = "red")
+mean_by_year <- tapply(RS_year$RS, RS_year$ANNEE, mean)
 lines(names(mean_by_year), mean_by_year, type = "l", col = "red")
 #rien ne fonctionne ?! 
 
@@ -284,6 +285,22 @@ barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))
 table(PE_obs$NOM_FR_BIRD[PE_obs$ANNEE == "2002"])
 length(unique(PE_obs$ESPECE[PE_obs$ANNEE==2002])) #RS en 2002 est :
 
-#comment faire pour avoir le nombre de sites ou sont present chaque espèce ?
-#refaire fonction agregate mais dans l'autre sens 
+# Sur combien de point d ecoute sont present chaque espece, toute annee confondu : 
+ES_PE <- aggregate(SITE~ ESPECE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(ES_PE)[2] <- "nb_PE"
+ES_PE <- ES_PE[order(ES_PE$nb_PE),]#fonction order pour trier dans l'ordre croissant 
+
+mean(ES_PE$nb_PE) ; sd(ES_PE$nb_PE) ; var(ES_PE$nb_PE)
+summary(ES_PE) #50% des esp st presentes sur 44 sites #cela varie au cours du temps ?
+
+# Graphique :
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(ES_PE$nb_PE, names.arg = ES_PE$ESPECE, xlab = "Nom des espèces", 
+        ylab = "Nombre de points d'écoutes", main = "Nombre de sites fréquenté par espèce", 
+        cex.names = 0.3)#graphique en baton #cex.names pour la taille # names.arg pour def les noms  pour chaque barre 
+abline(h = median(ES_PE$nb_PE), col = "darkred", lty = 2)# Ajout de la ligne de tendance 
+#h pour horizontale, lty = 2 pour les pointilles 
+
+
+  
 
