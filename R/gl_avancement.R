@@ -1,4 +1,10 @@
-###################### PARTIE 1 - CREATION DU JDD -----------------------------
+######################
+#
+#
+#             PARTIE 1 - CREATION DU JDD 
+#
+#
+#####################
 ############## 1 - CHARGEMENT DU JDD BRUT : pod ########
 
 
@@ -13,9 +19,7 @@ dim(pod)# dimensions : nbre de lignes puis de colonnes
 
 
 
-############## 2 - CREATION DU JDD EXPLOITABLE SUR R - une ligne par obs ##############
-
-
+############## 2 - CREATION DU JDD EXPLOITABLE SUR R - une ligne par obs #######
 ####### a - Nettoyer lignes et colonnes et renommer variables : pod2 #####
 
 
@@ -39,13 +43,12 @@ colnames(PE)[3] <- "ESPECE"
 ############## 3 - CREATION DES JDD DE VARIABLES EXPLICATIVES -----------------
 ####### a - Les points GPS des points d ecoute : pod_site #####
 
-#pod_site = subset(pod2, ANNEE == "2002" ) # qu'est ce que cest que cette ligne que j ai fait 
-#c'est bon j'ai compris c'était pour ne pas repeter les points d'ecoute mais enfait c'est inutile, pas besoin de le faire 
 pod_site <- unique(pod[,2:4])
 pod_site<-subset(pod_site, Site != "TOTAL")#garder tout sauf ligne total 
-#View(pod_site) #120 lignes = 120 points d ecoute ---> c'est ok
+#View(pod_site) 
+dim(pod_site)#120 lignes = 120 points d ecoute ---> c'est ok
 
-#il faut ajouter les caracteristiques de chaque point + est-ce que le point a changer de milieu 
+#il faut ajouter les caracteristiques de chaque point 
 #apres discussion : si le point a change de milieu = pas pertinent 
 
 ####### b - Caractéristique de l'habitat : ######
@@ -67,20 +70,27 @@ library(dplyr)
 PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des colonnes
 #View(PE)
 
+####### d - La liste des especes presentes sur GL : liste_esp #######
 
-####### d - La famille et l ordre de chaque espece : info_esp #####
+liste_esp <- aggregate(PE$ABONDANCE, by = list(PE$ESPECE), sum)
+names(liste_esp) <- c("nom_espece", "abondance_totale")
+liste_esp <- liste_esp[1]
+#bricolage 
+
+
+####### e - La famille et l ordre de chaque espece : info_esp et PE_info #####
 
 
 
 library(readr)
-info_esp <- read_csv("DATA/espece.csv")
-#View(info_esp)
-summary(info_esp)
+info_esp_complet <- read_csv("DATA/espece.csv")
+#View(info_esp_complet)
+summary(info_esp_complet)
 #Faire la correction du code crbpo diff entre les jdd :
-info_esp$code_crbpo <- ifelse(info_esp$pk_species == "LANSEN" , "LANSER" , info_esp$pk_species)
+info_esp_complet$code_crbpo <- ifelse(info_esp_complet$pk_species == "LANSEN" , "LANSER" , info_esp_complet$pk_species)
 #fonction ifelse = ptite boucle avec Si ... alors ... sinon ...) 
 #Jonction des deux jdd : 
-PE_info <- merge(PE,info_esp, all.x = TRUE, by.x = "ESPECE", by.y = "code_crbpo")
+PE_info <- merge(PE,info_esp_complet, all.x = TRUE, by.x = "ESPECE", by.y = "code_crbpo")
 #PE_info <- PE_info[,-c(6:17)]#pour ne garder que les colonnes qui m interesse
 #View(PE_info)
 #/!\ Attention /!\ 
@@ -88,11 +98,12 @@ PE_info <- merge(PE,info_esp, all.x = TRUE, by.x = "ESPECE", by.y = "code_crbpo"
 #il faut verifier que tous les codes soient les memes :
 unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
 # si egal à 0 alors c est ok 
+info_esp <- merge(liste_esp, info_esp_complet, by.x = "nom_espece", by.y = "code_crbpo")
+#niquel, il faut maintenant que je supprime pk_species qui a le mauvais code crbpo
 
 
 
-
-####### e - Le poids des esp, leur regime alimentaire et autre : geb #####
+####### f - Le poids des esp, leur regime alimentaire et autre : geb #####
 
 #chargement du jdd avec les poids moyen des esp 
 #attention triche : je l ai converti en csv 
@@ -110,7 +121,7 @@ summary(geb)
 PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
 
 
-####### f - Gradient de specialisation : ind_fonction  #######
+####### g - Gradient de specialisation : ind_fonction  #######
 
 library(readr)
 ind_fonction<- read_csv("DATA/espece_indicateur_fonctionel.csv")
@@ -120,7 +131,7 @@ ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" 
 
 
 
-####### g - La meteo de grand lieu : meteo_gl #######
+####### h - La meteo de grand lieu : meteo_gl #######
 
 library(readr) 
 meteo_gl<- read_csv2("DATA/AnnualData19602021.csv")
@@ -177,7 +188,7 @@ View(meteo_gl_annual)
 #il reste a faire les temperatures de l'hiver precedent, donc prendre de novembre n-1 à fevrier n 
 #apres discussion avec Seb, temp de l'hiver n'est pas perninent mais nbre de jours de gels est pertinent ++ 
 # donc il faut le nombre de jours en dessous de (0, -2, que choisir?) et faire une variable " jour de gel"
-
+#---> je n arrive pas à le faire 
 
 
 #maintenant il faudrait faire un merge pour avoir annee - TM - RR 
@@ -190,7 +201,7 @@ synth_meteo <- merge(meteo_synthese,meteo_gl_spring_simp, all.x = TRUE, all.y = 
 #je n'arrive pas a faire le merge correctement 
 
 
-####### h - Les niveaux d'eaux de GL  #######
+####### i - Les niveaux d'eaux de GL  #######
 
 library(readxl)
 niv_eau <- read_excel("DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
@@ -357,6 +368,9 @@ barplot(GT2$NB_ESP, names.arg = GT2$FMTAX, xlab = "FAMILLE taxo",
         ylab = "nombre d'especes", main = "Nombre d'espèces d'oiseaux par famille", cex.names = 0.8)
 
 ####### f - Les régimes alimentaires ####### 
+#les infos des regimes alimentaires sont stockees dans le jdd "geb" 
+#bien que je ne comprends pas tous les noms de variables, 
+#on va regarder tout ca : 
 PE_aggrege <- aggregate(PE$ABONDANCE, by = list(PE$ESPECE), sum)
 names(PE_aggrege) <- c("nom_espece", "abondance_totale")
 
@@ -370,12 +384,17 @@ table(geb_ss$e.fish)
 table(geb_ss$e.v.sm.mammals)
 table(geb_ss$e.lg.mammals)
 
+
+#Graphique : 
+
+#Proportion de frugivores :
 par(las = 2)
 barplot(fruit, main="mangeurs de fruits",
         ylab="nombre despeces mangeuses de fruits",
         col=c("blue", "red"), cex.names = 0.5)
 
 
+#Poids des espèces (pas tres pertinent)
 geb_ss<-geb_ss[order(geb_ss$e.bodymass.g.),]
 par(las = 2)
 barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
