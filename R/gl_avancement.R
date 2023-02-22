@@ -102,7 +102,6 @@ info_esp <- merge(liste_esp, info_esp_complet, by.x = "nom_espece", by.y = "code
 #niquel, il faut maintenant que je supprime pk_species qui a le mauvais code crbpo
 
 
-
 ####### f - Le poids des esp, leur regime alimentaire et autre : geb #####
 
 #chargement du jdd avec les poids moyen des esp 
@@ -371,19 +370,18 @@ barplot(GT2$NB_ESP, names.arg = GT2$FMTAX, xlab = "FAMILLE taxo",
 #les infos des regimes alimentaires sont stockees dans le jdd "geb" 
 #bien que je ne comprends pas tous les noms de variables, 
 #on va regarder tout ca : 
-PE_aggrege <- aggregate(PE$ABONDANCE, by = list(PE$ESPECE), sum)
-names(PE_aggrege) <- c("nom_espece", "abondance_totale")
 
-geb_ss <- merge(geb, PE_aggrege, by.y = "nom_espece", by.x = "code"  )
+geb_ss <- merge(geb, liste_esp, by.y = "nom_espece", by.x = "code"  )
 
 table(geb_ss$e.seeds.nuts.grain)
 fruit <- table(geb_ss$e.fruits.frugivory)
+View(fruit)
 table(geb_ss$e.vegitative)
-table(geb_ss$e.invert)
-table(geb_ss$e.fish)
+invert <-table(geb_ss$e.invert)
+fish <-table(geb_ss$e.fish)
 table(geb_ss$e.v.sm.mammals)
 table(geb_ss$e.lg.mammals)
-
+#il semblerait que la grosse proportions d'oiseaux du jdd soient des mangeurs d'invertebres 
 
 #Graphique : 
 
@@ -394,9 +392,28 @@ barplot(fruit, main="mangeurs de fruits",
         col=c("blue", "red"), cex.names = 0.5)
 
 
+#Proportion de mangeurs d'invertebres :
+par(las = 2)
+barplot(invert, main="mangeurs d invertebre",
+        ylab="nombre despeces mangeuses d 'invert",
+        col=c("blue", "red"), cex.names = 0.5)
+
+
+#Proportion de mangeurs de poissons :
+par(las = 2)
+barplot(fish, main="mangeurs de poissons",
+        ylab="nombre despeces mangeuses de poissons",
+        col=c("blue", "red"), cex.names = 0.5)
+
+
+
 #Poids des espèces (pas tres pertinent)
 geb_ss<-geb_ss[order(geb_ss$e.bodymass.g.),]
 par(las = 2)
 barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
         xlab="espece", ylab="masse",names.arg = geb_ss$code,
         col=c("blue", "red"), cex.names = 0.5)
+
+####### g - Le poids des oiseaux #######
+
+#les oiseaux du jdd sont-ils de gros oiseaux ? (non)
