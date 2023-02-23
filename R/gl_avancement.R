@@ -10,8 +10,9 @@
 
 #setwd("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/DATA")
 library(readxl)
-pod <- read_excel("DATA/dataPE.xlsx", 
+pod <- read_excel("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/ANALYSES/DATA/dataPE.xlsx",
                   col_names = TRUE)
+
 #VISUALISER ET RESUME DU JDD
 #View(pod) #voir
 summary(pod) #resume
@@ -58,7 +59,7 @@ dim(pod_site)#120 lignes = 120 points d ecoute ---> c'est ok
 ####### c - Les noms vernaculaires des oiseaux : code_crbpo #####
 
 library(readxl)
-code_crbpo <- read_excel("DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
+code_crbpo <- read_excel("C:/git/Grand_lieu/DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
 colnames(code_crbpo) <- c("ESPECE", "NOM_FR_BIRD")#nom des variables dans la matrice
 #View(code_crbpo)#visualisation du jdd
 dim(PE)
@@ -75,7 +76,8 @@ PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des 
 liste_esp <- aggregate(PE$ABONDANCE, by = list(PE$ESPECE), sum)
 names(liste_esp) <- c("nom_espece", "abondance_totale")
 liste_esp <- liste_esp[1]
-#bricolage 
+#bricolage
+#inutile car deja fait avec code_crbpo 
 
 
 ####### e - La famille et l ordre de chaque espece : info_esp et PE_info #####
@@ -83,7 +85,7 @@ liste_esp <- liste_esp[1]
 
 
 library(readr)
-info_esp_complet <- read_csv("DATA/espece.csv")
+info_esp_complet <- read_csv("C:/git/Grand_lieu/DATA/espece.csv")
 #View(info_esp_complet)
 summary(info_esp_complet)
 #Faire la correction du code crbpo diff entre les jdd :
@@ -107,7 +109,7 @@ info_esp <- merge(liste_esp, info_esp_complet, by.x = "nom_espece", by.y = "code
 #chargement du jdd avec les poids moyen des esp 
 #attention triche : je l ai converti en csv 
 library(readr)
-geb <- read.csv2("DATA/geb12127-sup-0002-ap.csv",skip = 6)# skip pour sauter les premieres lignes 
+geb <- read.csv2("C:/git/Grand_lieu/DATA/geb12127-sup-0002-ap.csv",skip = 6)# skip pour sauter les premieres lignes 
 geb$code <- casefold(geb$code, upper=T)#permet de tout mettre en majuscule (pour merge apres)
 #/!\ CODE CRBPO A CORRIGER /// meme oiseau == autre nom 
 geb$code_crbpo <- ifelse(geb$code == "LANSEN" , "LANSER" , geb$code) # maj des codes crbpo
@@ -123,17 +125,38 @@ PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusi
 ####### g - Gradient de specialisation : ind_fonction  #######
 
 library(readr)
-ind_fonction<- read_csv("DATA/espece_indicateur_fonctionel.csv")
+ind_fonction<- read_csv("C:/git/Grand_lieu/DATA/espece_indicateur_fonctionel.csv")
 #View(ind_fonction)
 ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" , ind_fonction$pk_species)
 #j ai remplace directement dans la variable pk_species 
 
 
 
+####### h - La migration des oiseaux : HWI ##### 
+
+setwd("C:/git/Grand_lieu/DATA")
+library(readxl)
+HWI_complet <- read_excel("Dataset_HWI_2020-04-10_shread_2020_naturecom.xlsx")
+
+#corriger erreur lancen 
+#ajouter les noms scientifiques à la liste 
+scien_name <- info_esp[,1:3]
+scien_name <- scien_name[,-2]
+HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name", by.y = "Species name")
+
+table(HWI$`Migration-1`)
+table(HWI$`Migration-2`) 
+#1 = sédentaire 
+#2 = partiellement migrateur 
+#3 = totalement migrateur 
+table(HWI$`Migration-3`)
+
+barplot(table(HWI$`Migration-2`), main = "repartition des especes migratrices sur gl")
+
 ####### h - La meteo de grand lieu : meteo_gl #######
 
 library(readr) 
-meteo_gl<- read_csv2("DATA/AnnualData19602021.csv")
+meteo_gl<- read_csv2("C:/git/Grand_lieu/DATA/AnnualData19602021.csv")
 #View(meteo_gl)
 summary(meteo_gl)
 dim(meteo_gl)
@@ -246,7 +269,7 @@ mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
 ####### b - La variable SITE : les points d ecoutes #######
 
 #exploration de base : 
-length(unique(PE$SITE)) #le nombre de points d ecoute #probleme, 119 ou 120 ?? 
+length(unique(PE$SITE)) #le nombre de points d ecoute (120) 
 summary(PE$SITE)#pas grand interet ? 
 table(PE$SITE)# pas grand interet ?
 table(PE_obs$SITE)#nombre d observation par site 
@@ -415,5 +438,3 @@ barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
         col=c("blue", "red"), cex.names = 0.5)
 
 ####### g - Le poids des oiseaux #######
-
-#les oiseaux du jdd sont-ils de gros oiseaux ? (non)
