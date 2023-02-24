@@ -187,12 +187,14 @@ rr_y <- aggregate(RR ~ Date_y, data = meteo_gl, mean, na.rm = TRUE)
 
 
 library(data.table)
-DT_meteo <- meteo_gl
+DT_meteo <- meteo_gl#faire une copie du jdd
 setDT(DT_meteo)
 
 tm_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR = sum(RR,na.rm = TRUE), TM = mean(TM,na.rm=TRUE)),by = Date_y]
-
-
+#ecriture particuliere de data.table qui permet de creer des moyennes avec des conditions 
+plot(tm_y_printemps$RR ~ tm_y_printemps$Date_y, type = "b",
+     main = "Variation des précipitations du printemps en fonction des ans",xlab = "Annees", ylab = "Precipitations(mm)")
+?plot
 meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
                                ifelse(meteo_gl$Date_m %in% c(1:3),meteo_gl$Date_y,meteo_gl$Date_y + 1),
                                NA)
