@@ -71,13 +71,15 @@ library(dplyr)
 PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des colonnes
 #View(PE)
 
-####### d - La liste des especes presentes sur GL : liste_esp #######
+####### d - La liste des especes en comptage exaustif : liste #######
+#La liste a ete faite a la main par moi 
+#Pourquoi il n'y a pas les autres rapaces dans ce mode de comptage ? 
+liste <- read_csv("C:/git/Grand_lieu/DATA/liste_comptage_exaustif.csv")
 
-#liste_esp <- aggregate(PE$ABONDANCE, by = list(PE$ESPECE), sum)
-#names(liste_esp) <- c("nom_espece", "abondance_totale")
-#liste_esp <- liste_esp[1]
-#bricolage
-#inutile car deja fait avec code_crbpo 
+PE_info$type_c <- ifelse(PE_info$ESPECE == liste$code , 1 , 0)
+PE$type_c <- ifelse(PE$ESPECE == liste$code , 1 , 0)
+#1 = le comptage est exaustif, tous les individus sont comptes 
+#0 = le comptage n'est pas exaustif et se fait par le nbre de males chanteurs 
 
 
 ####### e - La famille et l ordre de chaque espece : info_esp et PE_info #####
@@ -163,14 +165,26 @@ summary(meteo_gl)
 dim(meteo_gl)
 meteo_gl$RR <- as.numeric(meteo_gl$RR) #mettre en numerique ce dont on a besoin 
 meteo_gl$Date_m <- as.numeric(meteo_gl$Date_m)
-meteo_gl <- meteo_gl[!is.na(meteo_gl$RR),] # supprimer la valeur egal a NA /!\ est ce que jai bien fait ?
+
+#Supprimer la valeur de NA ? Ici on ne va pas le faire 
+#(je garde le code au cas ou)
+
+#meteo_gl <- meteo_gl[!is.na(meteo_gl$RR),] # supprimer la valeur egal a NA /!\ est ce que jai bien fait ?
 #drop_na(nom_de_la_colonne) #autre facon de supprimer les NA 
-dim(meteo_gl)#1 ligne en moins, on avait 1 na ---> c est ok 
 
 
-#faire les calculs/synthese et 
-TM_y <- ave(meteo_gl$TM,meteo_gl$Date_y)#temperature moyenne par an 
-tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean, na.rm = TRUE)
+#Exploration des donnees meteo : 
+
+#Temperature moyenne par an :
+tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean)
+#permet de faire la moyenne des TM en fonction de l'annee
+#autre methode possible avec fonction ave()
+
+
+#Precipitation moyenne par an : 
+rr_y <- aggregate(RR ~ Date_y, data = meteo_gl, mean, na.rm = TRUE)
+#mm chose qu'au dessus,  na.rm = TRUE pour ne pas prendre en compte les NA
+
 
 library(data.table)
 DT_meteo <- meteo_gl
