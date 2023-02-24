@@ -183,18 +183,47 @@ tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean)
 
 #Precipitation moyenne par an : 
 rr_y <- aggregate(RR ~ Date_y, data = meteo_gl, mean, na.rm = TRUE)
+#je pense qu'on a une moyenne annuelle de precipitations par jours 
+#est-ce-que c'est pertinent ? 
+rr_y_sum <- aggregate(RR ~ Date_y, data = meteo_gl, sum, na.rm = TRUE)
 #mm chose qu'au dessus,  na.rm = TRUE pour ne pas prendre en compte les NA
+View(rr_y)#les valeurs me paraissent bizarre ? 
+#je pense qu'on a une moyenne annuelle de precipitations par jours 
+#est-ce-que c'est pertinent ? 
+
+#on pourrait faire une somme des précipitations plutot non ? 
 
 
 library(data.table)
 DT_meteo <- meteo_gl#faire une copie du jdd
 setDT(DT_meteo)
 
-tm_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR = sum(RR,na.rm = TRUE), TM = mean(TM,na.rm=TRUE)),by = Date_y]
+dt_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR = sum(RR,na.rm = TRUE), TM = mean(TM,na.rm=TRUE)),by = Date_y]
 #ecriture particuliere de data.table qui permet de creer des moyennes avec des conditions 
+
+#Graphique :
 plot(tm_y_printemps$RR ~ tm_y_printemps$Date_y, type = "b",
      main = "Variation des précipitations du printemps en fonction des ans",xlab = "Annees", ylab = "Precipitations(mm)")
-?plot
+
+plot(tm_y_printemps$TM ~ tm_y_printemps$Date_y, type = "b",
+     main = "Variation des temperatures du printemps en fonction des ans",xlab = "Annees", ylab = "Temperature (°C)")
+#flagrant l'augmentation des temperatures...
+
+plot(rr_y_sum$RR ~ rr_y_sum$Date_y, type = "b",
+     main = "Variation des sommes des precipitations du printemps en fonction des ans",xlab = "Annees", ylab = "Temperature (°C)")
+
+
+#Tentative de graphique avec ggplot : 
+library(ggplot2)
+
+ggplot(data = rr_y_sum, aes(x = Date_y, y = RR)) +
+  geom_point(size = 3, alpha = 0.8) + #ajouter les points 
+  geom_line(color = "blue") + #ajouter une ligne
+  scale_x_continuous(breaks = rr_y_sum$Date_y, labels = rr_y_sum$Date_y) #afficher date sur axe des x 
+
+#voir fonction theme()
+
+ 
 meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
                                ifelse(meteo_gl$Date_m %in% c(1:3),meteo_gl$Date_y,meteo_gl$Date_y + 1),
                                NA)
