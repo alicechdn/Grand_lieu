@@ -73,9 +73,9 @@ PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des 
 
 ####### d - La liste des especes presentes sur GL : liste_esp #######
 
-liste_esp <- aggregate(PE$ABONDANCE, by = list(PE$ESPECE), sum)
-names(liste_esp) <- c("nom_espece", "abondance_totale")
-liste_esp <- liste_esp[1]
+#liste_esp <- aggregate(PE$ABONDANCE, by = list(PE$ESPECE), sum)
+#names(liste_esp) <- c("nom_espece", "abondance_totale")
+#liste_esp <- liste_esp[1]
 #bricolage
 #inutile car deja fait avec code_crbpo 
 
@@ -100,7 +100,7 @@ PE_info <- merge(PE,info_esp_complet, all.x = TRUE, by.x = "ESPECE", by.y = "cod
 #il faut verifier que tous les codes soient les memes :
 unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
 # si egal à 0 alors c est ok 
-info_esp <- merge(liste_esp, info_esp_complet, by.x = "nom_espece", by.y = "code_crbpo")
+info_esp <- merge(code_crbpo, info_esp_complet, by.x = "ESPECE", by.y = "code_crbpo")
 #niquel, il faut maintenant que je supprime pk_species qui a le mauvais code crbpo
 
 
@@ -140,8 +140,9 @@ HWI_complet <- read_excel("Dataset_HWI_2020-04-10_shread_2020_naturecom.xlsx")
 
 #corriger erreur lancen 
 #ajouter les noms scientifiques à la liste 
-scien_name <- info_esp[,1:3]
-scien_name <- scien_name[,-2]
+scien_name <- info_esp[,1:5]
+scien_name <- scien_name[,-c(2:3)]
+View(scien_name)
 HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name", by.y = "Species name")
 
 table(HWI$`Migration-1`)
@@ -169,6 +170,29 @@ dim(meteo_gl)#1 ligne en moins, on avait 1 na ---> c est ok
 
 #faire les calculs/synthese et 
 TM_y <- ave(meteo_gl$TM,meteo_gl$Date_y)#temperature moyenne par an 
+tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean, na.rm = TRUE)
+
+library(data.table)
+DT_meteo <- meteo_gl
+setDT(DT_meteo)
+
+tm_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR = sum(RR,na.rm = TRUE), TM = mean(TM,na.rm=TRUE)),by = Date_y]
+
+
+meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
+                               ifelse(meteo_gl$Date_m %in% c(1:3),meteo_gl$Date_y,meteo_gl$Date_y + 1),
+                               NA)
+
+DT_meteo[,fin_hiver := ifelse(Date_m %in% c(1:3,10:12),
+                                ifelse(Date_m %in% c(1:3),Date_y,Date_y + 1),
+                                NA)] 
+
+
+gel <- aggregate(TM ~ fin_hiver ,data = meteo_gl,FUN = function(X) sum(as.numeric(X < 0)))
+DTgel <- DT_meteo[,.(nb_gel = sum(as.numeric(TM < 0))),fin_hiver]
+
+
+
 TM_y
 meteo_gl <- cbind(meteo_gl,TM_y)
 meteo_gl
@@ -226,9 +250,10 @@ synth_meteo <- merge(meteo_synthese,meteo_gl_spring_simp, all.x = TRUE, all.y = 
 ####### i - Les niveaux d'eaux de GL  #######
 
 library(readxl)
-niv_eau <- read_excel("DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
+niv_eau <- read_excel("C:/git/Grand_lieu/DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
 summary(niv_eau)
 #remettre dans le bon ordre le jdd avec reshape ? 
+#demander conseil a Sebastien, voir les chiffres /valeurs importantes 
 
 
 
@@ -249,7 +274,7 @@ View(PE_obs_info)
 ####### a - La variable reponse : ABONDANCE ####### 
 #VARIABLE REPONSE == ABONDANCE
 plot(PE_obs$ABONDANCE)
-hist(PE_obs$ABONDANCE) #bcp bcp de petites valeurs
+hist(PE_obs$ABONDANCE) #bcp bcp de petites valeurs#att valeurs extremes
 summary(PE$ABONDANCE)
 summary(PE_obs$ABONDANCE)#+ de 50% des valeurs sont des 1 ; max a 700 indiv
 table(PE_obs$ABONDANCE)
@@ -323,13 +348,13 @@ barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et année",
         ylab = "Nombre d'espèces", main = "Nombre d'espèces d'oiseaux par année", cex.names = 0.8)
 
 # Ajout de la ligne de tendance 
-abline(coef(RS_lm), col = "red")
+abline(RS_lm, col = "red")
 lines(loess(RS_year$RS ~ RS_year$ANNEE), col = "red")
 mean_by_year <- tapply(RS_year$RS, RS_year$ANNEE, mean)
 lines(names(mean_by_year), mean_by_year, type = "l", col = "red")
 #rien ne fonctionne ?! 
-
-
+#faire sur un plot, pas de barplot
+#tenter ggplot 
 
 
 
