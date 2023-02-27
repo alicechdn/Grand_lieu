@@ -266,18 +266,15 @@ ggplot(meteo_y_etude, aes(x = Date_y)) +
   geom_line(aes(y = RR, color = "RR jour")) +
   labs(x = "Année",y = "RR",title = "Precipitations moyenne par jour du lac de Grand lieu entre 2000 et 2021")
 #pas tres pertinent je pense cette variable... 
+#j'aimerai que les courbes de variations se superposent ( chacune dans leur gamme de variation respective) afin de pouvoir les comparer.
+#Une variable est en nombre de jours de gel ( entre 0 et 20)
+#et l'autre variable est une moyenne des températures qui tourne autour de 15 degres. comment faire ?
 
-
-# Créer un plot avec ggplot2
-ggplot(meteo_y_etude, aes(x = Date_y, y = TM)) +
-  geom_line(color = "blue", size = 1.5) +
-  ggtitle("Températures moyennes annuelles de 2000 à 2020") +
-  xlab("Année") + ylab("Température (°C)")
 
 
 #Graphique :
 #Des ptits graphiques pour visualiser un peu de tout... 
-plot(tm_y_printemps$RR ~ tm_y_printemps$Date_y, type = "b",
+plot(dt_y_printemps$RR_sum_spring ~ dt_y_printemps$Date_y, type = "b",
      main = "Variation des précipitations du printemps en fonction des ans",
      xlab = "Annees", ylab = "Precipitations(mm)")
 
