@@ -52,6 +52,8 @@ dim(pod_site)#120 lignes = 120 points d ecoute ---> c'est ok
 #il faut ajouter les caracteristiques de chaque point 
 #apres discussion : si le point a change de milieu = pas pertinent 
 
+rm(pod, pod2)
+
 ####### b - Caractéristique de l'habitat : ######
 
 #### en attente des donnees 
@@ -75,12 +77,17 @@ PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des 
 #La liste a ete faite a la main 
 #Pourquoi il n'y a pas les autres rapaces dans ce mode de comptage ? 
 liste <- read_csv("C:/git/Grand_lieu/DATA/liste_comptage_exaustif.csv")
+summary(PE)
+summary(liste)
+liste$code <- as.character(liste$code)
+PE$ESPECE <- as.character(PE$ESPECE)
+
 
 PE_info$type_c <- ifelse(PE_info$ESPECE == liste$code , 1 , 0)
-PE$type_c <- ifelse(PE$ESPECE == liste$code , 1 , 0)
+PE$type_c <- ifelse(liste$code == PE$ESPECE  , 1 , 0)
 #1 = le comptage est exaustif, tous les individus sont comptes 
 #0 = le comptage n'est pas exaustif et se fait par le nbre de males chanteurs 
-
+#ca marchait et ça ne marche plus, wtf ?
 
 ####### e - La famille et l ordre de chaque espece : info_esp et PE_info #####
 
@@ -104,6 +111,8 @@ unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauv
 # si egal à 0 alors c est ok 
 info_esp <- merge(code_crbpo, info_esp_complet, by.x = "ESPECE", by.y = "code_crbpo")
 #niquel, il faut maintenant que je supprime pk_species qui a le mauvais code crbpo
+
+rm(info_esp_complet)#supprimer info_esp_complet qui ne sert plus a rien 
 
 
 ####### f - Le poids des esp, leur regime alimentaire et autre : geb #####
@@ -158,7 +167,10 @@ table(HWI$`Migration-3`)
 
 barplot(table(HWI$`Migration-2`), main = "repartition des especes migratrices sur gl")
 
-####### h - La meteo de grand lieu : meteo_gl #######
+rm(scien_name, HWI_complet)#supprimer HWI_complet qui ne sert plus a rien 
+
+
+####### i - La meteo de grand lieu : meteo_gl #######
 
 library(readr) 
 meteo_gl<- read_csv2("C:/git/Grand_lieu/DATA/AnnualData19602021.csv")
@@ -197,7 +209,7 @@ library(data.table)
 DT_meteo <- meteo_gl#faire une copie du jdd
 setDT(DT_meteo)#a quoi ca sert deja ?
 
-dt_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR_sum_spring = sum(RR,na.rm = TRUE), TT_spring = mean(TM,na.rm=TRUE)),by = Date_y]
+dt_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR_sum_spring = sum(RR,na.rm = TRUE), TM_spring = mean(TM,na.rm=TRUE)),by = Date_y]
 #ecriture particuliere de data.table qui permet de creer des moyennes avec des conditions 
 
 meteo_y <-merge(meteo_y,dt_y_printemps, all.x = T, by = "Date_y")
@@ -242,8 +254,8 @@ library(scales)
 ggplot(meteo_y_etude, aes(x = Date_y)) +
   geom_point(aes(y = TM, color = "Température annuelle")) +
   geom_line(aes(y = TM, color = "Température annuelle")) +
-  geom_point(aes(y = TT_spring, color = "Temperature du printemps")) +
-  geom_line(aes(y = TT_spring, color = "Temperature du printemps")) +
+  geom_point(aes(y = TM_spring, color = "Temperature du printemps")) +
+  geom_line(aes(y = TM_spring, color = "Temperature du printemps")) +
   scale_color_manual(values = c("red", "Darkred")) +
   #scale_y_continuous(name = "TM",limits = c(min(meteo_y_etude$TM), max(meteo_y_etude$TM)))+
   labs(x = "Année",y = "temperature (°C)", title = "Température moyenne annuelles et printanières du lac de Grand lieu entre 2000 et 2021")
@@ -264,7 +276,7 @@ ggplot(meteo_y_etude, aes(x = Date_y)) +
 ggplot(meteo_y_etude, aes(x = Date_y)) +
   geom_point(aes(y = RR, color = "RR jour")) +
   geom_line(aes(y = RR, color = "RR jour")) +
-  labs(x = "Année",y = "RR",title = "Precipitations moyenne par jour du lac de Grand lieu entre 2000 et 2021")
+  labs(x = "Année",y = "Précipitations (mm)",title = "Precipitations moyenne par jour du lac de Grand lieu entre 2000 et 2021")
 #pas tres pertinent je pense cette variable... 
 #j'aimerai que les courbes de variations se superposent ( chacune dans leur gamme de variation respective) afin de pouvoir les comparer.
 #Une variable est en nombre de jours de gel ( entre 0 et 20)
@@ -278,45 +290,21 @@ plot(dt_y_printemps$RR_sum_spring ~ dt_y_printemps$Date_y, type = "b",
      main = "Variation des précipitations du printemps en fonction des ans",
      xlab = "Annees", ylab = "Precipitations(mm)")
 
-plot(dt_y_printemps$TT_spring ~ dt_y_printemps$Date_y, type = "b",
+plot(dt_y_printemps$TM_spring ~ dt_y_printemps$Date_y, type = "b",
      main = "Variation des temperatures du printemps en fonction des ans",
      xlab = "Annees", ylab = "Temperature (°C)")
 #flagrant l'augmentation des temperatures...
-
-plot(rr_y_sum$RR ~ rr_y_sum$Date_y, type = "b",
-     main = "Variation des sommes des precipitations du printemps en fonction des ans",
-     xlab = "Annees", ylab = "Temperature (°C)")
 
 plot(meteo_y_etude$j_gel~ meteo_y_etude$Date_y,
      type = "b", main = "Nombre de journées rudes par hiver",
      xlab = "Annee", ylab = "Nb de jours")
 
 
-#Tentative de graphique avec ggplot : 
-library(ggplot2)
-
-ggplot(data = rr_y_sum, aes(x = Date_y, y = RR_sum)) +
-  geom_point(size = 3, alpha = 0.8) + #ajouter les points 
-  geom_line(color = "blue") + #ajouter une ligne
-  scale_x_continuous(breaks = rr_y_sum$Date_y, labels = rr_y_sum$Date_y) #afficher date sur axe des x 
-#voir fonction theme()
-
-
-
-
 #pour supprimer un objet : rm(nom_objet) #pour remove
-rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y)
+rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y, meteo_gl, meteo_y)
 
 
-
-
-
-
-
-
-
-
-####### i - Les niveaux d'eaux de GL  #######
+####### j - Les niveaux d'eaux de GL  #######
 
 library(readxl)
 niv_eau <- read_excel("C:/git/Grand_lieu/DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
@@ -417,10 +405,10 @@ barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et année",
         ylab = "Nombre d'espèces", main = "Nombre d'espèces d'oiseaux par année", cex.names = 0.8)
 
 # Ajout de la ligne de tendance 
-abline(RS_lm, col = "red")
-lines(loess(RS_year$RS ~ RS_year$ANNEE), col = "red")
-mean_by_year <- tapply(RS_year$RS, RS_year$ANNEE, mean)
-lines(names(mean_by_year), mean_by_year, type = "l", col = "red")
+#abline(RS_lm, col = "red")
+#lines(loess(RS_year$RS ~ RS_year$ANNEE), col = "red")
+#mean_by_year <- tapply(RS_year$RS, RS_year$ANNEE, mean)
+#lines(names(mean_by_year), mean_by_year, type = "l", col = "red")
 #rien ne fonctionne ?! 
 #faire sur un plot, pas de barplot
 #tenter ggplot 
