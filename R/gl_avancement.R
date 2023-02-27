@@ -231,17 +231,42 @@ meteo_y_etude <- subset(meteo_y, Date_y >=2000)
 
 
 ###GRAPHIQUES###
-
-
-plot(meteo_y_etude$j_gel~ meteo_y_etude$Date_y, type = "b")
-plot
-
-
-
 library(ggplot2)
 library(dplyr)
+library(scales)
 
-# Filtrer les données pour la période 2000-2020
+
+
+#Graphique comparaison des temperatures annuelles et printanières 
+
+ggplot(meteo_y_etude, aes(x = Date_y)) +
+  geom_point(aes(y = TM, color = "Température annuelle")) +
+  geom_line(aes(y = TM, color = "Température annuelle")) +
+  geom_point(aes(y = TT_spring, color = "Temperature du printemps")) +
+  geom_line(aes(y = TT_spring, color = "Temperature du printemps")) +
+  scale_color_manual(values = c("red", "Darkred")) +
+  #scale_y_continuous(name = "TM",limits = c(min(meteo_y_etude$TM), max(meteo_y_etude$TM)))+
+  labs(x = "Année",y = "temperature (°C)", title = "Température moyenne annuelles et printanières du lac de Grand lieu entre 2000 et 2021")
+  #On a une sacre correlation entre les deux variables (logique)
+
+# Graphique comparaison des variables de precipitations 
+
+ggplot(meteo_y_etude, aes(x = Date_y)) +
+  geom_point(aes(y = RR_sum_spring, color = "RR print")) +
+  geom_line(aes(y = RR_sum_spring, color = "RR print")) +
+  geom_point(aes(y = RR_sum, color = "somme")) +
+  geom_line(aes(y = RR_sum, color = "somme")) +
+  scale_color_manual(values = c("blue", "Darkblue")) +
+  #scale_y_continuous(name = "TM",limits = c(min(meteo_y_etude$TM), max(meteo_y_etude$TM)))+
+  labs(x = "Année",y = "RR", title = "Precipitations moyenne annuelles et printanières du lac de Grand lieu entre 2000 et 2021")
+#On a une sacre correlation entre les deux variables (logique)
+
+ggplot(meteo_y_etude, aes(x = Date_y)) +
+  geom_point(aes(y = RR, color = "RR jour")) +
+  geom_line(aes(y = RR, color = "RR jour")) +
+  labs(x = "Année",y = "RR",title = "Precipitations moyenne par jour du lac de Grand lieu entre 2000 et 2021")
+#pas tres pertinent je pense cette variable... 
+
 
 # Créer un plot avec ggplot2
 ggplot(meteo_y_etude, aes(x = Date_y, y = TM)) +
@@ -251,11 +276,12 @@ ggplot(meteo_y_etude, aes(x = Date_y, y = TM)) +
 
 
 #Graphique :
+#Des ptits graphiques pour visualiser un peu de tout... 
 plot(tm_y_printemps$RR ~ tm_y_printemps$Date_y, type = "b",
      main = "Variation des précipitations du printemps en fonction des ans",
      xlab = "Annees", ylab = "Precipitations(mm)")
 
-plot(tm_y_printemps$TM ~ tm_y_printemps$Date_y, type = "b",
+plot(dt_y_printemps$TT_spring ~ dt_y_printemps$Date_y, type = "b",
      main = "Variation des temperatures du printemps en fonction des ans",
      xlab = "Annees", ylab = "Temperature (°C)")
 #flagrant l'augmentation des temperatures...
@@ -264,15 +290,22 @@ plot(rr_y_sum$RR ~ rr_y_sum$Date_y, type = "b",
      main = "Variation des sommes des precipitations du printemps en fonction des ans",
      xlab = "Annees", ylab = "Temperature (°C)")
 
+plot(meteo_y_etude$j_gel~ meteo_y_etude$Date_y,
+     type = "b", main = "Nombre de journées rudes par hiver",
+     xlab = "Annee", ylab = "Nb de jours")
+
 
 #Tentative de graphique avec ggplot : 
 library(ggplot2)
 
-ggplot(data = rr_y_sum, aes(x = Date_y, y = RR)) +
+ggplot(data = rr_y_sum, aes(x = Date_y, y = RR_sum)) +
   geom_point(size = 3, alpha = 0.8) + #ajouter les points 
   geom_line(color = "blue") + #ajouter une ligne
   scale_x_continuous(breaks = rr_y_sum$Date_y, labels = rr_y_sum$Date_y) #afficher date sur axe des x 
 #voir fonction theme()
+
+
+
 
 #pour supprimer un objet : rm(nom_objet) #pour remove
 rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y)
