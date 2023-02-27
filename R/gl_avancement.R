@@ -72,7 +72,7 @@ PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des 
 #View(PE)
 
 ####### d - La liste des especes en comptage exaustif : liste #######
-#La liste a ete faite a la main par moi 
+#La liste a ete faite a la main 
 #Pourquoi il n'y a pas les autres rapaces dans ce mode de comptage ? 
 liste <- read_csv("C:/git/Grand_lieu/DATA/liste_comptage_exaustif.csv")
 
@@ -129,7 +129,8 @@ PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusi
 library(readr)
 ind_fonction<- read_csv("C:/git/Grand_lieu/DATA/espece_indicateur_fonctionel.csv")
 #View(ind_fonction)
-ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" , ind_fonction$pk_species)
+ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" ,
+                                 ind_fonction$pk_species)
 #j ai remplace directement dans la variable pk_species 
 
 
@@ -145,7 +146,8 @@ HWI_complet <- read_excel("Dataset_HWI_2020-04-10_shread_2020_naturecom.xlsx")
 scien_name <- info_esp[,1:5]
 scien_name <- scien_name[,-c(2:3)]
 View(scien_name)
-HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name", by.y = "Species name")
+HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name",
+             by.y = "Species name")
 
 table(HWI$`Migration-1`)
 table(HWI$`Migration-2`) 
@@ -165,15 +167,11 @@ summary(meteo_gl)
 dim(meteo_gl)
 meteo_gl$RR <- as.numeric(meteo_gl$RR) #mettre en numerique ce dont on a besoin 
 meteo_gl$Date_m <- as.numeric(meteo_gl$Date_m)
-
-#Supprimer la valeur de NA ? Ici on ne va pas le faire 
-#(je garde le code au cas ou)
-
-#meteo_gl <- meteo_gl[!is.na(meteo_gl$RR),] # supprimer la valeur egal a NA /!\ est ce que jai bien fait ?
-#drop_na(nom_de_la_colonne) #autre facon de supprimer les NA 
+#Supprimer la valeur de NA ? Ici on ne va pas le faire (je garde le code au cas ou)
+#meteo_gl <- meteo_gl[!is.na(meteo_gl$RR),]#drop_na(nom_de_la_colonne) #autre facon  
 
 
-#Exploration des donnees meteo : 
+#Mise en forme du jdd meteo: --> valeur annuelle 
 
 #Temperature moyenne par an :
 tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean)
@@ -181,36 +179,90 @@ tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean)
 #autre methode possible avec fonction ave()
 
 
-#Precipitation moyenne par an : 
+#Precipitation moyenne par jour et par an : #est-ce-que c'est pertinent ?
 rr_y <- aggregate(RR ~ Date_y, data = meteo_gl, mean, na.rm = TRUE)
-#je pense qu'on a une moyenne annuelle de precipitations par jours 
-#est-ce-que c'est pertinent ? 
-rr_y_sum <- aggregate(RR ~ Date_y, data = meteo_gl, sum, na.rm = TRUE)
-#mm chose qu'au dessus,  na.rm = TRUE pour ne pas prendre en compte les NA
-View(rr_y)#les valeurs me paraissent bizarre ? 
-#je pense qu'on a une moyenne annuelle de precipitations par jours 
-#est-ce-que c'est pertinent ? 
+# na.rm = TRUE pour ne pas prendre en compte les NA
+ 
 
-#on pourrait faire une somme des précipitations plutot non ? 
+#Somme des precipitations de l'annee :
+rr_y_sum <- aggregate(RR ~ Date_y, data = meteo_gl, sum, na.rm = TRUE)
+colnames(rr_y_sum)[2] <-'RR_sum'
+
+
+meteo_y <- merge(tm_y,rr_y, all.x = TRUE, by = "Date_y")
+meteo_y <-merge(meteo_y,rr_y_sum,all.x = T, by = "Date_y")
 
 
 library(data.table)
 DT_meteo <- meteo_gl#faire une copie du jdd
-setDT(DT_meteo)
+setDT(DT_meteo)#a quoi ca sert deja ?
 
-dt_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR = sum(RR,na.rm = TRUE), TM = mean(TM,na.rm=TRUE)),by = Date_y]
+dt_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR_sum_spring = sum(RR,na.rm = TRUE), TT_spring = mean(TM,na.rm=TRUE)),by = Date_y]
 #ecriture particuliere de data.table qui permet de creer des moyennes avec des conditions 
+
+meteo_y <-merge(meteo_y,dt_y_printemps, all.x = T, by = "Date_y")
+
+
+
+#Creation de la variable "nombre de jours de gel dans l'hiver precedent" : 
+
+#Nouvelle variable qui corrige l'annee pour les mois de octo, nov, dec : 
+meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
+                             ifelse(meteo_gl$Date_m %in% c(1:3),
+                                    meteo_gl$Date_y,meteo_gl$Date_y + 1), NA)
+
+#Creation nouvel objet qui contient le nbre de jours de gel :
+gel <- aggregate(TM ~ fin_hiver,data = meteo_gl,
+                 FUN = function(X) sum(as.numeric(X < 0)));colnames(gel) <-c("Date_y", "j_gel")
+#on lui dit de compter le nombre de fois ou les valeurs sont inf à 0 
+
+#Inclure cette nouvelle variable dans le jdd : 
+meteo_y <-merge(meteo_y,gel, all.x = T, by = "Date_y")
+
+#Sous jeu de donnees seulement pour les annees de l'etude : 
+meteo_y_etude <- subset(meteo_y, Date_y >=2000)
+
+
+#Langage data.table : Autre methode pour faire la meme chose : 
+#DT_meteo[,fin_hiver := ifelse(Date_m %in% c(1:3,10:12),
+#                              ifelse(Date_m %in% c(1:3),Date_y,Date_y + 1),
+#                             NA)] 
+#DTgel <- DT_meteo[,.(nb_gel = sum(as.numeric(TM < 0))),fin_hiver]
+
+
+###GRAPHIQUES###
+
+
+plot(meteo_y_etude$j_gel~ meteo_y_etude$Date_y, type = "b")
+plot
+
+
+
+library(ggplot2)
+library(dplyr)
+
+# Filtrer les données pour la période 2000-2020
+
+# Créer un plot avec ggplot2
+ggplot(meteo_y_etude, aes(x = Date_y, y = TM)) +
+  geom_line(color = "blue", size = 1.5) +
+  ggtitle("Températures moyennes annuelles de 2000 à 2020") +
+  xlab("Année") + ylab("Température (°C)")
+
 
 #Graphique :
 plot(tm_y_printemps$RR ~ tm_y_printemps$Date_y, type = "b",
-     main = "Variation des précipitations du printemps en fonction des ans",xlab = "Annees", ylab = "Precipitations(mm)")
+     main = "Variation des précipitations du printemps en fonction des ans",
+     xlab = "Annees", ylab = "Precipitations(mm)")
 
 plot(tm_y_printemps$TM ~ tm_y_printemps$Date_y, type = "b",
-     main = "Variation des temperatures du printemps en fonction des ans",xlab = "Annees", ylab = "Temperature (°C)")
+     main = "Variation des temperatures du printemps en fonction des ans",
+     xlab = "Annees", ylab = "Temperature (°C)")
 #flagrant l'augmentation des temperatures...
 
 plot(rr_y_sum$RR ~ rr_y_sum$Date_y, type = "b",
-     main = "Variation des sommes des precipitations du printemps en fonction des ans",xlab = "Annees", ylab = "Temperature (°C)")
+     main = "Variation des sommes des precipitations du printemps en fonction des ans",
+     xlab = "Annees", ylab = "Temperature (°C)")
 
 
 #Tentative de graphique avec ggplot : 
@@ -220,76 +272,18 @@ ggplot(data = rr_y_sum, aes(x = Date_y, y = RR)) +
   geom_point(size = 3, alpha = 0.8) + #ajouter les points 
   geom_line(color = "blue") + #ajouter une ligne
   scale_x_continuous(breaks = rr_y_sum$Date_y, labels = rr_y_sum$Date_y) #afficher date sur axe des x 
-
 #voir fonction theme()
 
- 
-meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
-                               ifelse(meteo_gl$Date_m %in% c(1:3),meteo_gl$Date_y,meteo_gl$Date_y + 1),
-                               NA)
-
-DT_meteo[,fin_hiver := ifelse(Date_m %in% c(1:3,10:12),
-                                ifelse(Date_m %in% c(1:3),Date_y,Date_y + 1),
-                                NA)] 
-
-
-gel <- aggregate(TM ~ fin_hiver ,data = meteo_gl,FUN = function(X) sum(as.numeric(X < 0)))
-DTgel <- DT_meteo[,.(nb_gel = sum(as.numeric(TM < 0))),fin_hiver]
+#pour supprimer un objet : rm(nom_objet) #pour remove
+rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y)
 
 
 
-TM_y
-meteo_gl <- cbind(meteo_gl,TM_y)
-meteo_gl
-
-RR_y <- ave(meteo_gl$RR,meteo_gl$Date_y)#precipitation moyenne par an 
-RR_y
-meteo_gl <- cbind(meteo_gl,RR_y)
-meteo_gl
-
-#extraire les mois de printemps puis calculer moyennes par an :
-
-meteo_gl_spring<-subset(meteo_gl, Date_m == 5 | Date_m == 6 )#pour les mois de mai et juin 
-#la barre verticale permet de creer "OU" et donc de mettre +ieurs nombres 
-tt_spring <- ave(meteo_gl_spring$TM,meteo_gl_spring$Date_y)
-rr_spring <- ave(meteo_gl_spring$RR,meteo_gl_spring$Date_y)
-meteo_gl_spring<- cbind(meteo_gl_spring,tt_spring,rr_spring)
-summary(meteo_gl_spring)
-View(meteo_gl_spring)
-# Filtrer les données pour ne conserver que les mois de décembre, janvier et février
-meteo_gl_hiver <- subset(meteo_gl, Date_m %in% c(12, 1, 2))
-
-# Calculer la température moyenne pour chaque année
-tt_hiver <- ave(meteo_gl_hiver$TM, meteo_gl_hiver$Date_y)
-
-# Décaler la colonne de température moyenne pour l'hiver précédent
-tt_hiver_prec <- c(NA, head(tt_hiver, -1))
-
-# Ajouter les colonnes au jeu de données
-meteo_gl_spring <- cbind(meteo_gl_spring, tt_hiver_prec, tt_spring, rr_spring)
-
-# Calculer les moyennes annuelles pour toutes les colonnes
-meteo_gl_annual <- aggregate(cbind(Tm, tt_spring, tt_hiver_prec, RR) ~ Date_y, data = meteo_gl_spring, FUN = mean)
-
-# Afficher le tableau final
-View(meteo_gl_annual)
 
 
 
-#il reste a faire les temperatures de l'hiver precedent, donc prendre de novembre n-1 à fevrier n 
-#apres discussion avec Seb, temp de l'hiver n'est pas perninent mais nbre de jours de gels est pertinent ++ 
-# donc il faut le nombre de jours en dessous de (0, -2, que choisir?) et faire une variable " jour de gel"
-#---> je n arrive pas à le faire 
 
 
-#maintenant il faudrait faire un merge pour avoir annee - TM - RR 
-
-meteo_synthese<-matrix(c(2002:2022),byrow = TRUE, ncol = 1)#il faut automatiser le 2022 
-colnames(meteo_synthese)[1] <- "ANNEE"
-#peut etre il faut supprimer ce dont je n'ai pas besoin 
-meteo_gl_spring_simp <-cbind(meteo_gl_spring[4], meteo_gl_spring[14:17])
-synth_meteo <- merge(meteo_synthese,meteo_gl_spring_simp, all.x = TRUE, all.y = FALSE, by.x = "ANNEE", by.y = "Date_y")
-#je n'arrive pas a faire le merge correctement 
 
 
 ####### i - Les niveaux d'eaux de GL  #######
