@@ -76,15 +76,22 @@ PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des 
 ####### d - La liste des especes en comptage exaustif : liste #######
 #La liste a ete faite a la main 
 #Pourquoi il n'y a pas les autres rapaces dans ce mode de comptage ? 
-liste <- read_csv("C:/git/Grand_lieu/DATA/liste_comptage_exaustif.csv")
+liste <- read.csv2("C:/git/Grand_lieu/DATA/liste_comptage_exaustif.csv"); colnames(liste)<- "code"
 summary(PE)
 summary(liste)
 liste$code <- as.character(liste$code)
 PE$ESPECE <- as.character(PE$ESPECE)
 
+liste$type <- 1 
+code_crbpo2 <-merge(code_crbpo, liste, by.x = "ESPECE", by.y = "code", all.x = TRUE )
+code_crbpo2[is.na(code_crbpo2)] <- 0
+code_crbpo2 <- code_crbpo2[-c(2:4)]
+PE <-merge(PE,code_crbpo2, by = "ESPECE", all.x = TRUE )
+#le bricolage fonctionne 
 
+#comme les ifelse ne fonctionnent pas comme je le souhaite, je tente avec une methode bricolage 
 PE_info$type_c <- ifelse(PE_info$ESPECE == liste$code , 1 , 0)
-PE$type_c <- ifelse(liste$code == PE$ESPECE  , 1 , 0)
+code_crbpo$type_c <- ifelse(liste$code == code_crbpo$NOM_FR_BIRD  , 1 , 0)
 #1 = le comptage est exaustif, tous les individus sont comptes 
 #0 = le comptage n'est pas exaustif et se fait par le nbre de males chanteurs 
 #ca marchait et ça ne marche plus, wtf ?
