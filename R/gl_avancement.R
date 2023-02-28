@@ -330,6 +330,9 @@ Date <-str_split(n_eau_prov$date, "-", simplify = TRUE) ; colnames(Date) <- c("a
 #
 n_eau_complet<- data.frame(n_eau_prov$date, Date[,2:3] , annee = n_eau_prov$variable, hauteur = n_eau_prov$hauteur)
 colnames(n_eau_complet)[1] <- "date"
+library(dplyr)
+n_eau_complet <-select(n_eau_complet, date, annee, mois, jour, hauteur)#data puis ordre des colonnes
+#View(PE)
 summary(n_eau_complet)#variables sous un mauvais format : 
 n_eau_complet$mois <- as.numeric(n_eau_complet$mois)
 n_eau_complet$jour <- as.numeric(n_eau_complet$jour)
