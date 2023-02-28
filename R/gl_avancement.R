@@ -287,10 +287,10 @@ ggplot(meteo_y_etude, aes(x = Date_y)) +
   geom_line(aes(y = RR, color = "RR jour")) +
   labs(x = "Année",y = "Précipitations (mm)",title = "Precipitations moyenne par jour du lac de Grand lieu entre 2000 et 2021")
 #pas tres pertinent je pense cette variable... 
-#j'aimerai que les courbes de variations se superposent ( chacune dans leur gamme de variation respective) afin de pouvoir les comparer.
+#j'aimerai que les courbes de variations se superposent
+#( chacune dans leur gamme de variation respective) afin de pouvoir les comparer.
 #Une variable est en nombre de jours de gel ( entre 0 et 20)
 #et l'autre variable est une moyenne des températures qui tourne autour de 15 degres. comment faire ?
-
 
 
 #Graphique :
@@ -308,12 +308,16 @@ plot(meteo_y_etude$j_gel~ meteo_y_etude$Date_y,
      type = "b", main = "Nombre de journées rudes par hiver",
      xlab = "Annee", ylab = "Nb de jours")
 
-
 #pour supprimer un objet : rm(nom_objet) #pour remove
 rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y, meteo_gl, meteo_y)
 
 
+
+
 ####### j - Niveaux d'eaux : n_eau  #######
+
+
+
 #chargement du jdd 
 library(readxl)
 niv_eau <- read_excel("C:/git/Grand_lieu/DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
@@ -323,6 +327,7 @@ summary(niv_eau) ; colnames(niv_eau)[1] <- "date"
 n_eau_prov <- reshape2::melt(niv_eau,id=c("date"),value.name = "hauteur (m)")#passage colonnes en lignes 
 library(stringr)
 Date <-str_split(n_eau_prov$date, "-", simplify = TRUE) ; colnames(Date) <- c("annee","mois","jour")
+#
 n_eau_complet<- data.frame(n_eau_prov$date, Date[,2:3] , annee = n_eau_prov$variable, hauteur = n_eau_prov$hauteur)
 colnames(n_eau_complet)[1] <- "date"
 summary(n_eau_complet)#variables sous un mauvais format : 
@@ -351,7 +356,7 @@ ggplot() +
   #scale_y_continuous(name = "TM",limits = c(min(n_eau$TM), max(n_eau$TM)))+
   labs(x = "jj_y",y = "hauteur", title = "hauteur niveau d'eau ")
 
-n_eau$mois <- factor(n_eau$mois, levels = month.name)
+#n_eau$mois <- factor(n_eau$mois, levels = month.name)
 
 ggplot(n_eau, aes(x = date, y = hauteur, group = as.factor(annee), color = as.factor(annee))) +
   geom_line() +
@@ -365,19 +370,20 @@ library(gridExtra)
 plots_list <- list()
 
 # Boucle pour créer un graphique pour chaque année
-for (i in 2000:2005) { #pour tous les ans : max(n_eau$annee)
-  data_year <- n_eau[n_eau$annee == i,]# Filtrer les données pour l'année i
+for (i in 2016:2022) { #pour tous les ans : max(n_eau$annee)
+  data_year <- n_eau[n_eau$annee == i,]# filtrer les données pour l'année i
   # Créer le graphique pour l'année i
   graph <- ggplot(data_year, aes(x = date, y = hauteur)) +
     geom_line(color = "blue") +
-    labs(x = "Date", y = "Hauteur", title = paste("Niveau d'eau en", i))
+    labs(x = "Date", y = "Hauteur(m)", title = paste("Niveau d'eau en", i))
   # Ajouter le graphique à la liste
-  plots_list[[i-1999]] <- graph
+  plots_list[[i-2015]] <- graph
 }
 
 # Afficher les graphiques : grid.arrange()
-grid.arrange(grobs = plots_list, ncol = 4)
-
+grid.arrange(grobs = plots_list, ncol = 4)#grobs pour afficher une liste
+#ncol pour le nbre de colonnes 
+#on voit des crues en 2001, 2007, 2008?, 2012, 2013, 2015++, 
 
 #rm(n_eau_prov, Date, niv_eau)#supprimer les jdd intermediaires
 
@@ -409,7 +415,6 @@ table(PE_obs$ABONDANCE)
 table(PE$ABONDANCE)
 table(PE$ABONDANCE >= 1)
 table(PE$ABONDANCE >=1)[2]/length(PE$ABONDANCE)*100 #pour differencier le 0 des autres 
-hist(data$nb_pulli_envol, xlab = "nbre bb envol", ylab = "frequence", main= "Frequence du nombre de jeunes ? l'envol par nid")
 
 mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
 #variance +++ a cause des quelques valeurs tres hautes ? 
@@ -439,7 +444,8 @@ RS_site<- aggregate(ESPECE ~ SITE, data = PE_obs, FUN = function(x) length(uniqu
 colnames(RS_site)[2] <- "RS"
 #representation graphique 
 par(las=2)#fonction qui permet d'orienter les noms des axes
-barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site", ylab = "Nombre d'espèces", main = "Richesse spécifique par site", cex.names = 0.5)
+barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site",
+        ylab = "Nombre d'espèces", main = "Richesse spécifique par site", cex.names = 0.5)
 
 
 
@@ -450,7 +456,8 @@ barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site", ylab = "Nombre d'es
 summary(PE$ANNEE)
 max(PE$ANNEE)-min(PE$ANNEE)#Le nombre d annees de suivi est de
 table(PE_obs$ANNEE) #le nombre total d'obs par annee est de 
-plot(table(PE_obs$ANNEE), main = "Nombre d'observations d'oiseaux par an ", xlab = "Année", ylab = "obs d'oiseaux")
+plot(table(PE_obs$ANNEE), main = "Nombre d'observations d'oiseaux par an ",
+     xlab = "Année", ylab = "obs d'oiseaux")
 #faire un truc + beau apres 
 
 #Quantité d'oiseaux au cours du temps 
