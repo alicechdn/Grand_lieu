@@ -94,7 +94,7 @@ summary(code_crbpo2)
 code_crbpo2$ESPECE <-as.factor(code_crbpo2$ESPECE)
 sum(code_crbpo2$type)#le nombre d'especes avec un protocole exaustif : 
 (sum(code_crbpo2$type)/nrow(code_crbpo2))*100# pourcentage dans le jdd 
-
+rm(code_crbpo2)
 
 
 
@@ -128,7 +128,7 @@ rm(info_esp_complet)#supprimer info_esp_complet qui ne sert plus a rien
 
 #chargement du jdd avec les poids moyen des esp 
 #attention triche : je l ai converti en csv 
-library(readr)
+
 geb <- read.csv2("C:/git/Grand_lieu/DATA/geb12127-sup-0002-ap.csv",skip = 6)# skip pour sauter les premieres lignes 
 geb$code <- casefold(geb$code, upper=T)#permet de tout mettre en majuscule (pour merge apres)
 #/!\ CODE CRBPO A CORRIGER /// meme oiseau == autre nom 
@@ -280,7 +280,7 @@ ggplot(meteo_y_etude, aes(x = Date_y)) +
   scale_color_manual(values = c("blue", "Darkblue")) +
   #scale_y_continuous(name = "TM",limits = c(min(meteo_y_etude$TM), max(meteo_y_etude$TM)))+
   labs(x = "Année",y = "RR", title = "Precipitations moyenne annuelles et printanières du lac de Grand lieu entre 2000 et 2021")
-#On a une sacre correlation entre les deux variables (logique)
+
 
 ggplot(meteo_y_etude, aes(x = Date_y)) +
   geom_point(aes(y = RR, color = "RR jour")) +
@@ -313,13 +313,75 @@ plot(meteo_y_etude$j_gel~ meteo_y_etude$Date_y,
 rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y, meteo_gl, meteo_y)
 
 
-####### j - Les niveaux d'eaux de GL  #######
-
+####### j - Niveaux d'eaux : n_eau  #######
+#chargement du jdd 
 library(readxl)
 niv_eau <- read_excel("C:/git/Grand_lieu/DATA/Cote Lac GL_1958_2022.xlsx", col_names = T)#chargement du jdd 
-summary(niv_eau)
-#remettre dans le bon ordre le jdd avec reshape ? 
-#demander conseil a Sebastien, voir les chiffres /valeurs importantes 
+summary(niv_eau) ; colnames(niv_eau)[1] <- "date"
+
+#mise en forme du jdd
+n_eau_prov <- reshape2::melt(niv_eau,id=c("date"),value.name = "hauteur (m)")#passage colonnes en lignes 
+library(stringr)
+Date <-str_split(n_eau_prov$date, "-", simplify = TRUE) ; colnames(Date) <- c("annee","mois","jour")
+n_eau_complet<- data.frame(n_eau_prov$date, Date[,2:3] , annee = n_eau_prov$variable, hauteur = n_eau_prov$hauteur)
+colnames(n_eau_complet)[1] <- "date"
+summary(n_eau_complet)#variables sous un mauvais format : 
+n_eau_complet$mois <- as.numeric(n_eau_complet$mois)
+n_eau_complet$jour <- as.numeric(n_eau_complet$jour)
+n_eau_complet$annee <- as.character(n_eau_complet$annee)#passer en character
+n_eau_complet$annee <- as.numeric(n_eau_complet$annee)#puis le passer en numeric 
+
+#creation du jdd des niveaux d'eaux final --> printemps 2000/2022
+n_eau<- subset(n_eau_complet, annee >=2000)# garder les annees sup ou egal à 2000 
+n_eau<- subset(n_eau, mois == "4" | mois == "5" | mois == "6" | mois == "7")#garder les mois de spring
+summary(n_eau)
+n_eau$date <- as.Date(n_eau$date)
+n_eau$jj <- c(1:nrow(n_eau))
+
+#Graphique : 
+
+n_eau_2001 <- subset(n_eau, annee == 2001)
+n_eau_2001$jj_y <- c(1:nrow(n_eau_2001))
+n_eau_2002<- subset(n_eau, annee == 2002)
+n_eau_2002$jj_y<- c(1:nrow(n_eau_2002))
+ggplot() +
+  geom_line(data = n_eau_2001,aes(x = jj_y, y = hauteur, color = "2001")) +
+  geom_line(data = n_eau_2002,aes(x = jj_y, y = hauteur,color = "2002" ) ) +
+  scale_color_manual(values = c("blue", "red")) +
+  #scale_y_continuous(name = "TM",limits = c(min(n_eau$TM), max(n_eau$TM)))+
+  labs(x = "jj_y",y = "hauteur", title = "hauteur niveau d'eau ")
+
+n_eau$mois <- factor(n_eau$mois, levels = month.name)
+
+ggplot(n_eau, aes(x = date, y = hauteur, group = as.factor(annee), color = as.factor(annee))) +
+  geom_line() +
+  labs(x = "date", y = "Hauteur (m)", title = "Hauteur du niveau d'eau par année") +
+  scale_color_manual(values = rev(rainbow(length(unique(n_eau$annee))))) +
+  theme_bw()
+
+library(gridExtra)
+
+# Créer une liste pour stocker les graphiques
+plots_list <- list()
+
+# Boucle pour créer un graphique pour chaque année
+for (i in 2000:2005) { #pour tous les ans : max(n_eau$annee)
+  data_year <- n_eau[n_eau$annee == i,]# Filtrer les données pour l'année i
+  # Créer le graphique pour l'année i
+  graph <- ggplot(data_year, aes(x = date, y = hauteur)) +
+    geom_line(color = "blue") +
+    labs(x = "Date", y = "Hauteur", title = paste("Niveau d'eau en", i))
+  # Ajouter le graphique à la liste
+  plots_list[[i-1999]] <- graph
+}
+
+# Afficher les graphiques : grid.arrange()
+grid.arrange(grobs = plots_list, ncol = 4)
+
+
+#rm(n_eau_prov, Date, niv_eau)#supprimer les jdd intermediaires
+
+
 
 
 
