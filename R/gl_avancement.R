@@ -49,7 +49,7 @@ pod_site<-subset(pod_site, Site != "TOTAL")#garder tout sauf ligne total
 #View(pod_site) 
 dim(pod_site)#120 lignes = 120 points d ecoute ---> c'est ok
 
-write.csv(pod_site, file = "pod_site.csv", col.names = TRUE, row.names = FALSE, sep = ",")
+#write.csv(pod_site, file = "pod_site.csv", col.names = TRUE, row.names = FALSE, sep = ",")
 
 library(readr)
 PE_RNN <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_RNN.csv")
@@ -58,6 +58,10 @@ PE_RNN$LAT <- as.factor(PE_RNN$LAT)
 pod_site$LAT <- as.factor(pod_site$LAT)
 summary(pod_site)
 
+#Suppression des caracteres speciaux dans le nom des lieux : 
+pod_site$Site <- gsub("[éèêë]", "e", pod_site$Site, ignore.case = TRUE)
+pod_site$Site <- gsub("[àâä]", "a", pod_site$Site, ignore.case = TRUE)
+#ignore.case permet d'ignorer MAJ/min sur les lettres 
 
 #il faut ajouter les caracteristiques de chaque point 
 #apres discussion : si le point a change de milieu = pas pertinent 
