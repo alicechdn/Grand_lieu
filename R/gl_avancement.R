@@ -55,6 +55,7 @@ pod_site$Site <- gsub("[àâä]", "a", pod_site$Site, ignore.case = TRUE)
 #ignore.case permet d'ignorer MAJ/min sur les lettres 
 
 #STATUT DE PROTECTION 
+#chargement
 library(readr)
 PE_RNN <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_RNN.csv")
 PE_RNR <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_RNR.csv")
@@ -63,17 +64,31 @@ PE_SITE_CLASS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CAR
 PE_SITE_INS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_SITE_INSCRIT.csv")
 #ils ont tous été crées sur QGIS 
 #Attention, n est pas reproductible si la personne n a pas ces fichiers ! 
+#suppression les colonnes inutiles : 
+PE_RNN <- subset(PE_RNN, select = c(Site, Nom))
+PE_RNR <- subset(PE_RNR, select = c(Site,ID_LOCAL)) #RNR191
+PE_ZPS <- subset(PE_ZPS, select = c(Site, SITECODE))# FR5210008
+PE_SITE_CLASS <- subset(PE_SITE_CLASS, select = c(Site, id_regiona))#4449
+PE_SITE_INS <- subset(PE_SITE_INS, select = c(Site, id_entite))#b
 dim(pod_site)
+
+#integrer chaque protection dans pod_site :
 pod_site <- merge(pod_site,PE_RNN, all.x = TRUE, by = "Site")
-pod_site <- pod_site[,-c(4:7)]
 pod_site <- merge(pod_site,PE_RNR, all.x = TRUE, by = "Site")
-pod_site <- pod_site[,-c(4:7)]
+pod_site <- merge(pod_site,PE_ZPS, all.x = TRUE, by = "Site")
+pod_site <- merge(pod_site,PE_SITE_CLASS, all.x = TRUE, by = "Site")
+pod_site <- merge(pod_site,PE_SITE_INS, all.x = TRUE, by = "Site")
+
+#Fusionner les colonnes ensemble 
+pod_site$protec <- paste0(ifelse(is.na(pod_site$ID_LOCAL), "", "RNR"),
+                          ifelse(is.na(pod_site$SITECODE), "", "ZPS"),
+                          ifelse(is.na(pod_site$Nom), "", "RNN"), 
+                          ifelse(is.na(pod_site$id_regiona), "", "site classe"),
+                          ifelse(is.na(pod_site$id_entite), "", "site inscrit"))
+                          
 
 
-#il faut ajouter les caracteristiques de chaque point 
-#apres discussion : si le point a change de milieu = pas pertinent 
-
-rm(pod, pod2)
+#rm(pod, pod2)
 
 ####### b - Caractéristique de l'habitat : ######
 
