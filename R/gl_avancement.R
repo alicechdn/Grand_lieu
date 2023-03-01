@@ -42,7 +42,7 @@ colnames(PE)[3] <- "ESPECE"
 
 
 ############## 3 - CREATION DES JDD DE VARIABLES EXPLICATIVES -----------------
-####### a - Les points GPS des points d ecoute : pod_site #####
+####### a - Points d ecoute, GPS et caracteristiques : pod_site #####
 
 #Mise en forme du jdd
 pod_site <- unique(pod[,2:4])
@@ -85,9 +85,11 @@ pod_site$protec <- paste0(ifelse(is.na(pod_site$ID_LOCAL), "", "RNR"),
                           ifelse(is.na(pod_site$Nom), "", "RNN"), 
                           ifelse(is.na(pod_site$id_regiona), "", "site classe"),
                           ifelse(is.na(pod_site$id_entite), "", "site inscrit"))
-                          
-
-
+pod_site$protec[pod_site$protec == ""] <- "aucune"
+pod_site$protec <-as.factor(pod_site$protec)
+table(pod_site$protec)
+barplot(table(pod_site$protec),
+        main = "repartition des statut de protection des points d ecoute")
 #rm(pod, pod2)
 
 ####### b - Caractéristique de l'habitat : ######
