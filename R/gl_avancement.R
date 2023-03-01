@@ -44,24 +44,31 @@ colnames(PE)[3] <- "ESPECE"
 ############## 3 - CREATION DES JDD DE VARIABLES EXPLICATIVES -----------------
 ####### a - Les points GPS des points d ecoute : pod_site #####
 
+#Mise en forme du jdd
 pod_site <- unique(pod[,2:4])
 pod_site<-subset(pod_site, Site != "TOTAL")#garder tout sauf ligne total 
 #View(pod_site) 
 dim(pod_site)#120 lignes = 120 points d ecoute ---> c'est ok
-
-#write.csv(pod_site, file = "pod_site.csv", col.names = TRUE, row.names = FALSE, sep = ",")
-
-library(readr)
-PE_RNN <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_RNN.csv")
-summary(PE_RNN)
-PE_RNN$LAT <- as.factor(PE_RNN$LAT)
-pod_site$LAT <- as.factor(pod_site$LAT)
-summary(pod_site)
-
 #Suppression des caracteres speciaux dans le nom des lieux : 
 pod_site$Site <- gsub("[éèêë]", "e", pod_site$Site, ignore.case = TRUE)
 pod_site$Site <- gsub("[àâä]", "a", pod_site$Site, ignore.case = TRUE)
 #ignore.case permet d'ignorer MAJ/min sur les lettres 
+
+#STATUT DE PROTECTION 
+library(readr)
+PE_RNN <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_RNN.csv")
+PE_RNR <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_RNR.csv")
+PE_ZPS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_ZPS.csv")
+PE_SITE_CLASS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_SITE_CLASSE.csv")
+PE_SITE_INS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_SITE_INSCRIT.csv")
+#ils ont tous été crées sur QGIS 
+#Attention, n est pas reproductible si la personne n a pas ces fichiers ! 
+dim(pod_site)
+pod_site <- merge(pod_site,PE_RNN, all.x = TRUE, by = "Site")
+pod_site <- pod_site[,-c(4:7)]
+pod_site <- merge(pod_site,PE_RNR, all.x = TRUE, by = "Site")
+pod_site <- pod_site[,-c(4:7)]
+
 
 #il faut ajouter les caracteristiques de chaque point 
 #apres discussion : si le point a change de milieu = pas pertinent 
