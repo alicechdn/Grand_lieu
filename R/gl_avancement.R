@@ -152,15 +152,8 @@ summary(info_esp_complet)
 #Faire la correction du code crbpo diff entre les jdd :
 info_esp_complet$code_crbpo <- ifelse(info_esp_complet$pk_species == "LANSEN" , "LANSER" , info_esp_complet$pk_species)
 #fonction ifelse = ptite boucle avec Si ... alors ... sinon ...) 
-#Jonction des deux jdd : 
-PE_info <- merge(PE,info_esp_complet, all.x = TRUE, by.x = "ESPECE", by.y = "code_crbpo")
-#PE_info <- PE_info[,-c(6:17)]#pour ne garder que les colonnes qui m interesse
-#View(PE_info)
-#/!\ Attention /!\ 
-#saisi des codes crbpo diff entre les jdd 
-#il faut verifier que tous les codes soient les memes :
-unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
-# si egal à 0 alors c est ok 
+
+
 info_esp <- merge(code_crbpo, info_esp_complet, by.x = "ESPECE", by.y = "code_crbpo")
 #niquel, il faut maintenant que je supprime pk_species qui a le mauvais code crbpo
 
@@ -181,9 +174,6 @@ geb$code_crbpo <- ifelse(geb$code == "LANSEN" , "LANSER" , geb$code) # maj des c
 summary(geb)
 #View(geb)
 #geb$POIDS <- as.numeric(geb$POIDS) #ne pas faire pour l'instant car introduit des NA
-
-PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
-
 
 ####### g - Gradient de specialisation : ind_fonction  #######
 
@@ -434,7 +424,26 @@ grid.arrange(grobs = plots_list, ncol = 4)#grobs pour afficher une liste
 
 
 
+################# k - Création PE_info #############
 
+
+PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
+#PE_info <- PE_info[,-c(6:17)]#pour ne garder que les colonnes qui m interesse
+#/!\ Attention /!\ 
+#saisi des codes crbpo diff entre les jdd 
+#il faut verifier que tous les codes soient les memes :
+unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
+# si egal à 0 alors c est ok 
+PE_info <- merge(PE_info,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
+PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
+PE_info <- merge(PE_info,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd 
+PE_info <- merge(PE_info,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd 
+
+PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDANCE,
+                                      type, order_tax, family_tax, e.bodymass.g., ssi, 
+                                      TM, RR, RR_sum, RR_sum_spring, TM_spring,
+                                      j_gel,Territoriality, Diet))#Migration-1, Migration-2, Migration-3
+PE_infot1 <-subset(PE_info, PE_info$type == "0")
 
 ############## 4 - Analyses descriptives du jdd #######
 
@@ -643,6 +652,10 @@ barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
         col=c("blue", "red"), cex.names = 0.5)
 
 
+##### PE_info : la création 
+
+
+
 #####################
 #
 #
@@ -681,6 +694,13 @@ mdrouss <- glm(family = poisson , ABONDANCE ~ ANNEE, data = PErousserolleeffar)
 summary(mdrouss)#on perd -0,07 rousserolle par an ? très significatif 
 mdrouss2 <- glm(family = poisson , ABONDANCE ~ SITE, data = PErousserolleeffar)
 summary(mdrouss2)
+
+#PAS DE DONNEES METEO POUR 2022 !!! 
+md_info <-  glm(family = poisson , ABONDANCE ~ TM + RR + j_gel, data = PE_info)
+summary(md_info)#bizarre pour le nombre de jours de gel 
+
+md_infot1 <-  glm(family = poisson , ABONDANCE ~ RR + RR_sum, TM_spring, RR_sum_spring,j_gel, data = PE_infot1)
+summary(md_infot1)#bizarre pour le nombre de jours de gel 
 
 
 
