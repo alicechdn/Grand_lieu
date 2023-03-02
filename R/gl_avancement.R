@@ -65,7 +65,7 @@ PE_SITE_INS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTO
 #ils ont tous été crées sur QGIS 
 #Attention, n est pas reproductible si la personne n a pas ces fichiers ! 
 #suppression les colonnes inutiles : 
-PE_RNN <- subset(PE_RNN, select = c(Site, Nom))
+PE_RNN <- subset(PE_RNN, select = c(Site, Nom))#lieu et statut seulemt
 PE_RNR <- subset(PE_RNR, select = c(Site,ID_LOCAL)) #RNR191
 PE_ZPS <- subset(PE_ZPS, select = c(Site, SITECODE))# FR5210008
 PE_SITE_CLASS <- subset(PE_SITE_CLASS, select = c(Site, id_regiona))#4449
@@ -90,7 +90,12 @@ pod_site$protec <-as.factor(pod_site$protec)
 table(pod_site$protec)
 barplot(table(pod_site$protec),
         main = "repartition des statut de protection des points d ecoute")
-#rm(pod, pod2)
+#Jai fait le choix de ne faire qu'une variable avec le statut de protection 
+#le plus fort, ex: ceux en RNN sont aussi en ZPS mais ZPS moins fort que RNN 
+
+rm(pod, pod2, PE_RNN, PE_RNR, PE_ZPS, PE_SITE_CLASS, PE_SITE_INS)#suppr les inutiles
+
+
 
 ####### b - Caractéristique de l'habitat : ######
 
@@ -233,18 +238,18 @@ meteo_gl$Date_m <- as.numeric(meteo_gl$Date_m)
 #Mise en forme du jdd meteo: --> valeur annuelle 
 
 #Temperature moyenne par an :
-tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean)
+tm_y <- aggregate(TM ~ Date_y, data = meteo_gl, mean) ; tm_y
 #permet de faire la moyenne des TM en fonction de l'annee
 #autre methode possible avec fonction ave()
 
 
 #Precipitation moyenne par jour et par an : #est-ce-que c'est pertinent ?
-rr_y <- aggregate(RR ~ Date_y, data = meteo_gl, mean, na.rm = TRUE)
+rr_y <- aggregate(RR ~ Date_y, data = meteo_gl, mean, na.rm = TRUE) ; rr_y
 # na.rm = TRUE pour ne pas prendre en compte les NA
  
 
 #Somme des precipitations de l'annee :
-rr_y_sum <- aggregate(RR ~ Date_y, data = meteo_gl, sum, na.rm = TRUE)
+rr_y_sum <- aggregate(RR ~ Date_y, data = meteo_gl, sum, na.rm = TRUE) ; rr_y_sum
 colnames(rr_y_sum)[2] <-'RR_sum'
 
 
@@ -262,8 +267,7 @@ dt_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR_sum_spring = sum(RR,na.rm =
 meteo_y <-merge(meteo_y,dt_y_printemps, all.x = T, by = "Date_y")
 
 
-
-#Creation de la variable "nombre de jours de gel dans l'hiver precedent" : 
+###Creation de la variable "nombre de jours de gel dans l'hiver precedent" : 
 
 #Nouvelle variable qui corrige l'annee pour les mois de octo, nov, dec : 
 meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
@@ -446,7 +450,7 @@ PE_obs
 PE_obs_info <-subset(PE_info, ABONDANCE != 0 )
 View(PE_obs_info)
 
-####### a - La variable reponse : ABONDANCE ####### 
+####### a - Variable reponse : ABONDANCE ####### 
 #VARIABLE REPONSE == ABONDANCE
 plot(PE_obs$ABONDANCE)
 hist(PE_obs$ABONDANCE) #bcp bcp de petites valeurs#att valeurs extremes
@@ -465,7 +469,7 @@ mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
 
 
 
-####### b - La variable SITE : les points d ecoutes #######
+####### b - Variable SITE : les points d ecoutes #######
 
 #exploration de base : 
 length(unique(PE$SITE)) #le nombre de points d ecoute (120) 
@@ -493,7 +497,7 @@ barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site",
 
 
 
-####### c - La variable ANNEE #######
+####### c - Variable ANNEE #######
 summary(PE$ANNEE)
 max(PE$ANNEE)-min(PE$ANNEE)#Le nombre d annees de suivi est de
 table(PE_obs$ANNEE) #le nombre total d'obs par annee est de 
@@ -535,7 +539,7 @@ barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et année",
 
 
 
-####### d - La variable ESPECE ######
+####### d - Variable ESPECE ######
 #Stats de base :
 length(unique(PE$ESPECE)) #est le nombre d espece vu dans ce protocole, toutes annees confondues 
 table(PE_obs$NOM_FR_BIRD)#le nombre de fois ou chaque esp a ete vu, toutes annees confondue 
@@ -595,7 +599,7 @@ barplot(GT2$NB_ESP, names.arg = GT2$FMTAX, xlab = "FAMILLE taxo",
 #bien que je ne comprends pas tous les noms de variables, 
 #on va regarder tout ca : 
 
-geb_ss <- merge(geb, liste_esp, by.y = "nom_espece", by.x = "code"  )
+geb_ss <- merge(code_crbpo, geb , by.y = "code", by.x = "ESPECE"  )
 
 table(geb_ss$e.seeds.nuts.grain)
 fruit <- table(geb_ss$e.fruits.frugivory)
@@ -610,25 +614,25 @@ table(geb_ss$e.lg.mammals)
 #Graphique : 
 
 #Proportion de frugivores :
-par(las = 2)
 barplot(fruit, main="mangeurs de fruits",
         ylab="nombre despeces mangeuses de fruits",
         col=c("blue", "red"), cex.names = 0.5)
 
 
 #Proportion de mangeurs d'invertebres :
-par(las = 2)
 barplot(invert, main="mangeurs d invertebre",
         ylab="nombre despeces mangeuses d 'invert",
         col=c("blue", "red"), cex.names = 0.5)
 
 
 #Proportion de mangeurs de poissons :
-par(las = 2)
 barplot(fish, main="mangeurs de poissons",
         ylab="nombre despeces mangeuses de poissons",
         col=c("blue", "red"), cex.names = 0.5)
 
+
+
+####### g - Le poids des oiseaux #######
 
 
 #Poids des espèces (pas tres pertinent)
@@ -638,4 +642,47 @@ barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
         xlab="espece", ylab="masse",names.arg = geb_ss$code,
         col=c("blue", "red"), cex.names = 0.5)
 
-####### g - Le poids des oiseaux #######
+
+#####################
+#
+#
+#           PARTIE 2 : Les Analyses 
+#
+#
+####################
+
+
+####### 5 - Variations d'abondances #######
+summary(PE)
+PE$type <-as.factor(PE$type)
+#test et bidouillage pour voir ce qui sort : 
+
+
+#ABONDANCE EN FONCTION DES ANNEES EN GAUSSIEN : 
+md <- glm(family = gaussian, ABONDANCE ~ ANNEE, data =PE)
+summary(md)
+
+#ABONDANCE EN FONCTION DES ANNEES EN POISSON : 
+md <- glm(family = poisson, ABONDANCE ~ ANNEE, data =PE)
+summary(md)
+
+#ABONDANCE EN FONCTION DES ANNEES EN quasiPOISSON : 
+md <- glm(family = quasipoisson, ABONDANCE ~ ANNEE, data =PE)
+summary(md)
+
+PEtest <- subset(PE, type == "0")
+PErousserolleeffar <- subset(PE, ESPECE == "ACRSCI") 
+
+md <- glm(family = poisson, ABONDANCE ~ SITE , data =PEtest)
+summary(md)
+
+
+mdrouss <- glm(family = poisson , ABONDANCE ~ ANNEE, data = PErousserolleeffar)
+summary(mdrouss)#on perd -0,07 rousserolle par an ? très significatif 
+mdrouss2 <- glm(family = poisson , ABONDANCE ~ SITE, data = PErousserolleeffar)
+summary(mdrouss2)
+
+
+
+
+
