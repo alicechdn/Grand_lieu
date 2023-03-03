@@ -191,6 +191,7 @@ ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" 
 setwd("C:/git/Grand_lieu/DATA")
 library(readxl)
 HWI_complet <- read_excel("Dataset_HWI_2020-04-10_shread_2020_naturecom.xlsx")
+colnames(HWI_complet)[11:13] <- c("migration_1","migration_2","migration_3")
 
 #corriger erreur lancen 
 #ajouter les noms scientifiques à la liste 
@@ -200,14 +201,14 @@ View(scien_name)
 HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name",
              by.y = "Species name")
 
-table(HWI$`Migration-1`)
-table(HWI$`Migration-2`) 
+table(HWI$migration_1)
+table(HWI$migration_2) 
 #1 = sédentaire 
 #2 = partiellement migrateur 
 #3 = totalement migrateur 
-table(HWI$`Migration-3`)
+table(HWI$migration_3)
 
-barplot(table(HWI$`Migration-2`), main = "repartition des especes migratrices sur gl")
+barplot(table(HWI$migration_2), main = "repartition des especes migratrices sur gl")
 
 rm(scien_name, HWI_complet)#supprimer HWI_complet qui ne sert plus a rien 
 
@@ -356,52 +357,81 @@ niv_eau <- read_excel("C:/git/Grand_lieu/DATA/Cote Lac GL_1958_2022.xlsx", col_n
 summary(niv_eau) ; colnames(niv_eau)[1] <- "date"
 
 #mise en forme du jdd
-n_eau_prov <- reshape2::melt(niv_eau,id=c("date"),value.name = "hauteur (m)")#passage colonnes en lignes 
+n_eau_prov <- reshape2::melt(niv_eau,id=c("date"),value.name = "hauteur (m)")
+#passage colonnes en lignes
 library(stringr)
 Date <-str_split(n_eau_prov$date, "-", simplify = TRUE) ; colnames(Date) <- c("annee","mois","jour")
-#
+#permet de separer la date complete par 3 variables differentes : annee/mois/jour
 n_eau_complet<- data.frame(n_eau_prov$date, Date[,2:3] , annee = n_eau_prov$variable, hauteur = n_eau_prov$hauteur)
+#la fonction data.frame me permet de "refaire" un jeu de donnees avec les colonnes que je souhaite 
 colnames(n_eau_complet)[1] <- "date"
 library(dplyr)
-n_eau_complet <-select(n_eau_complet, date, annee, mois, jour, hauteur)#data puis ordre des colonnes
+n_eau_complet <-select(n_eau_complet, date, annee, mois, jour, hauteur)
+#remettre les colonnes dans l'ordre (data puis nom des colonnes dans l'ordre)
 #View(PE)
 summary(n_eau_complet)#variables sous un mauvais format : 
 n_eau_complet$mois <- as.numeric(n_eau_complet$mois)
 n_eau_complet$jour <- as.numeric(n_eau_complet$jour)
 n_eau_complet$annee <- as.character(n_eau_complet$annee)#passer en character
 n_eau_complet$annee <- as.numeric(n_eau_complet$annee)#puis le passer en numeric 
-
+#passer en 1 ligne as.numeric(as.character)
 #creation du jdd des niveaux d'eaux final --> printemps 2000/2022
 n_eau<- subset(n_eau_complet, annee >=2000)# garder les annees sup ou egal à 2000 
 n_eau<- subset(n_eau, mois == "4" | mois == "5" | mois == "6" | mois == "7")#garder les mois de spring
 summary(n_eau)
-n_eau$date <- as.Date(n_eau$date)
-n_eau$jj <- c(1:nrow(n_eau))
+View(n_eau)
+n_eau$date <- as.Date(n_eau$date)#mettre au format date 
+library(lubridate)#package pour date
+n_eau$jj <- yday(n_eau$date)#transformer en jour julien 
+
+
+
+#voir pour passer en jour julien 
+#lubridate --> #yDay + faire colonne jour + mois 
+
 
 #Graphique : 
 
+
+#Exemple de crue : 
 n_eau_2001 <- subset(n_eau, annee == 2001)
-n_eau_2001$jj_y <- c(1:nrow(n_eau_2001))
 n_eau_2002<- subset(n_eau, annee == 2002)
-n_eau_2002$jj_y<- c(1:nrow(n_eau_2002))
+
 ggplot() +
-  geom_line(data = n_eau_2001,aes(x = jj_y, y = hauteur, color = "2001")) +
-  geom_line(data = n_eau_2002,aes(x = jj_y, y = hauteur,color = "2002" ) ) +
+  geom_line(data = n_eau_2001,aes(x = date, y = hauteur, color = "2001")) +
+  geom_line(data = n_eau_2002,aes(x = date, y = hauteur,color = "2002" ) ) +
+  #scale_color_manual(values = c("blue", "red")) +
+  #scale_y_continuous(name = "TM",limits = c(min(n_eau$TM), max(n_eau$TM)))+
+  labs(x = "Date",y = "Hauteur(m)",
+       title = "Hauteur du niveau d'eau de Grand lieu", color = "Légende :") +
+  theme_bw() 
+#la fonction theme() permet de changer l'apparence du graphique, avec size pour la police en encore family 
+
+
+#Autre exemple de crue : 
+n_eau_2014 <- subset(n_eau, annee == 2014)
+n_eau_2015<- subset(n_eau, annee == 2015)
+
+ggplot() +
+  geom_line(data = n_eau_2014,aes(x = date, y = hauteur, color = "2014")) +
+  geom_line(data = n_eau_2015,aes(x = date, y = hauteur,color = "2015" ) ) +
   scale_color_manual(values = c("blue", "red")) +
   #scale_y_continuous(name = "TM",limits = c(min(n_eau$TM), max(n_eau$TM)))+
-  labs(x = "jj_y",y = "hauteur", title = "hauteur niveau d'eau ")
+  labs(x = "Date",y = "Hauteur(m)",
+       title = "Hauteur du niveau d'eau de Grand lieu en 2014 et 2015", color = "Légende :") +
+  theme_bw() 
 
-#n_eau$mois <- factor(n_eau$mois, levels = month.name)
 
+#Superposition de toutes les courbes de niveau d'eau sur 20 ans 
 ggplot(n_eau, aes(x = date, y = hauteur, group = as.factor(annee), color = as.factor(annee))) +
   geom_line() +
-  labs(x = "date", y = "Hauteur (m)", title = "Hauteur du niveau d'eau par année") +
+  labs(x = "Date", y = "Hauteur (m)", title = "Hauteur du niveau d'eau sur la période du protocole", color = "Légende :") +
   scale_color_manual(values = rev(rainbow(length(unique(n_eau$annee))))) +
   theme_bw()
 
-library(gridExtra)
 
-# Créer une liste pour stocker les graphiques
+library(gridExtra)#package graphique, de meche avec ggplot
+# Créer une liste pour stocker les graphiques : 
 plots_list <- list()
 
 # Boucle pour créer un graphique pour chaque année
@@ -424,7 +454,7 @@ grid.arrange(grobs = plots_list, ncol = 4)#grobs pour afficher une liste
 
 
 
-################# k - Création PE_info #############
+####### k - Création PE_info #############
 
 
 PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
@@ -441,9 +471,12 @@ PE_info <- merge(PE_info,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Da
 
 PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDANCE,
                                       type, order_tax, family_tax, e.bodymass.g., ssi, 
-                                      TM, RR, RR_sum, RR_sum_spring, TM_spring,
-                                      j_gel,Territoriality, Diet))#Migration-1, Migration-2, Migration-3
-PE_infot1 <-subset(PE_info, PE_info$type == "0")
+                                      sti, stri,TM, RR, RR_sum, RR_sum_spring, TM_spring,
+                                      j_gel,Territoriality, Diet, migration_1, 
+                                      migration_2, migration_3))
+
+#il manque habitat + STI + STRI 
+#habitat en categorie 
 
 ############## 4 - Analyses descriptives du jdd #######
 
@@ -656,6 +689,12 @@ barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
 
 
 
+
+########### 5 - EXPORTER LE JDD FINAL 
+
+#write.csv
+
+
 #####################
 #
 #
@@ -665,7 +704,7 @@ barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
 ####################
 
 
-####### 5 - Variations d'abondances #######
+####### 6 - Variations d'abondances #######
 summary(PE)
 PE$type <-as.factor(PE$type)
 #test et bidouillage pour voir ce qui sort : 
