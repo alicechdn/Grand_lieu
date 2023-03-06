@@ -206,8 +206,11 @@ HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name",
              by.y = "species_name")# nbre de lignes = nbre d especes ? c ok 
 summary(HWI)
 HWI$Diet <- as.factor(HWI$Diet)
-barplot(table(HWI$Diet), main = "Répartition des régimes alimentaires des oiseaux commuuns de Grand Lieu", 
+HWI$Territoriality <- as.factor(HWI$Territoriality)
+barplot(table(HWI$Diet), main = "Répartition des régimes alimentaires des oiseaux communs de Grand Lieu", 
         xlab = "régime alimentaire", ylab = "Nombre d'espèces")
+barplot(table(HWI$Territoriality), main = "Classement des especes territoriales de Grand Lieu", 
+        xlab = "type de territorialité", ylab = "Nombre d'espèces")
 table(HWI$migration_1)
 table(HWI$migration_2) 
 #1 = sédentaire 
@@ -269,9 +272,9 @@ meteo_y <-merge(meteo_y,dt_y_printemps, all.x = T, by = "Date_y")
 
 #Nouvelle variable qui corrige l'annee pour les mois de octo, nov, dec : 
 meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
-                             ifelse(meteo_gl$Date_m %in% c(1:3),
+                             ifelse(meteo_gl$Date_m %in% c(1:4),
                                     meteo_gl$Date_y,meteo_gl$Date_y + 1), NA)
-
+#attention on prend avril en + !! 
 #Creation nouvel objet qui contient le nbre de jours de gel :
 gel <- aggregate(TM ~ fin_hiver,data = meteo_gl,
                  FUN = function(X) sum(as.numeric(X < 0)));colnames(gel) <-c("Date_y", "j_gel")
@@ -471,26 +474,28 @@ PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
 #il faut verifier que tous les codes soient les memes :
 unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
 # si egal à 0 alors c est ok 
+
+#Remplir PE_info avec tous les jdd 
 PE_info <- merge(PE_info,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
 PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
 PE_info <- merge(PE_info,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd 
 PE_info <- merge(PE_info,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd 
 
+#Selectionner les colonnes que l'on veut : 
 PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDANCE,
-                                      type, order_tax, family_tax, e.bodymass.g., ssi, 
-                                      sti, stri,TM, RR, RR_sum, RR_sum_spring, TM_spring,
+                                      type, order_tax, family_tax, e.bodymass.g.,
+                                      e.seeds.nuts.grain, e.fruits.frugivory,
+                                      e.vegitative, e.invert, e.fish, ssi, sti,
+                                      stri,TM, RR, RR_sum, RR_sum_spring, TM_spring,
                                       j_gel,Territoriality, Diet, migration_1, 
                                       migration_2, migration_3))
 
-#il manque habitat + STI + STRI 
-#habitat en categorie 
+#changer le nom des colonnes 
+#il manque habitat (en categorie) : Seb tente de le retrouver 
 
 ############## 4 - Analyses descriptives du jdd #######
 
-#les questions qu'on se pose : 
-#Comment s'organise la repartition de la communaute entre les regimes alimentaires ? 
-#Combien d'especes a-t-on au cours des ans ? 
-#Indices de diversite ? 
+#Indices de diversité ?
 
 #POUR LA DESCRIPTION JE CREE UN JDD SANS LES 0 
 PE_obs<-subset(PE, ABONDANCE != 0 )
@@ -592,6 +597,12 @@ barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et année",
 #Stats de base :
 length(unique(PE$ESPECE)) #est le nombre d espece vu dans ce protocole, toutes annees confondues 
 table(PE_obs$NOM_FR_BIRD)#le nombre de fois ou chaque esp a ete vu, toutes annees confondue 
+
+unefois <- data.frame(table(PE_obs$NOM_FR_BIRD) == 1)#extraire ceux present qu'une fois 
+table(unefois) #Dans ce jeu de données, 9 especes ont ete vu 1 fois, et 90 plusieurs fois
+centfois <- data.frame(table(PE_obs$NOM_FR_BIRD) <= 100)#extraire ceux present + de cent fois 
+table(centfois) # 42 especes ont ete vu - de cent fois 
+
 barplot(table(PE_obs$NOM_FR_BIRD))#visualisation de la ligne d'au dessus 
 barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),length(unique(PE$ESPECE)) )) #meme chose avec les espèce dans l'ordre d'obs
 pie(table(PE_obs$NOM_FR_BIRD))#le camembert pas très lisible mais permet tout de meme de visualiser quelques especes tres presente
