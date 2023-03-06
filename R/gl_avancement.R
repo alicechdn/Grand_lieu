@@ -192,15 +192,22 @@ setwd("C:/git/Grand_lieu/DATA")
 library(readxl)
 HWI_complet <- read_excel("Dataset_HWI_2020-04-10_shread_2020_naturecom.xlsx")
 colnames(HWI_complet)[11:13] <- c("migration_1","migration_2","migration_3")
+colnames(HWI_complet)[3] <- "species_name"
+summary(HWI_complet)
+HWI_complet$species_name <- ifelse(HWI_complet$species_name == "Coloeus monedula", 
+                                   "Corvus monedula", HWI_complet$species_name) # nom diff pour choucas des tours 
 
-#corriger erreur lancen 
-#ajouter les noms scientifiques à la liste 
+#Extraire les especes de notre protocole:  
+#On utilise les noms scienti car pas de code crbpo dans HWI_complet
 scien_name <- info_esp[,1:5]
 scien_name <- scien_name[,-c(2:3)]
 View(scien_name)
 HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name",
-             by.y = "Species name")
-
+             by.y = "species_name")# nbre de lignes = nbre d especes ? c ok 
+summary(HWI)
+HWI$Diet <- as.factor(HWI$Diet)
+barplot(table(HWI$Diet), main = "Répartition des régimes alimentaires des oiseaux commuuns de Grand Lieu", 
+        xlab = "régime alimentaire", ylab = "Nombre d'espèces")
 table(HWI$migration_1)
 table(HWI$migration_2) 
 #1 = sédentaire 
