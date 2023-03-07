@@ -382,28 +382,102 @@ n_eau_complet <-select(n_eau_complet, date, annee, mois, jour, hauteur)
 summary(n_eau_complet)#variables sous un mauvais format : 
 n_eau_complet$mois <- as.numeric(n_eau_complet$mois)
 n_eau_complet$jour <- as.numeric(n_eau_complet$jour)
-n_eau_complet$annee <- as.character(n_eau_complet$annee)#passer en character
-n_eau_complet$annee <- as.numeric(n_eau_complet$annee)#puis le passer en numeric 
-#passer en 1 ligne as.numeric(as.character)
+n_eau_complet$annee <- as.numeric(as.character(n_eau_complet$annee))#passer en character puis en numeric 
 #creation du jdd des niveaux d'eaux final --> printemps 2000/2022
 n_eau<- subset(n_eau_complet, annee >=2000)# garder les annees sup ou egal à 2000 
 n_eau<- subset(n_eau, mois == "4" | mois == "5" | mois == "6" | mois == "7")#garder les mois de spring
-summary(n_eau)
-View(n_eau)
+summary(n_eau) # ; View(n_eau)
+
 n_eau$date <- as.Date(n_eau$date)#mettre au format date 
 library(lubridate)#package pour date
 n_eau$jj <- yday(n_eau$date)#transformer en jour julien 
+#n_eau <- subset(n_eau, select = -c(date)) #enlever la colonne date qui ne sert plus
+head(n_eau)
+
+#On a le jdd n_eau propre, avec la hauteur pour chaque jour
+#Sauf que nous, on a besoin d'une seule valeur par an dans notre PE_info 
+#On crée donc un indice de crue, 1 annee = 1 valeur
+
+###Creation de l'indice de crue : 
+
+## mauvaise idée de standardisation :-(
+# require(data.table)
+# setDT(n_eau)
+# n_eau[,hauteur_y_med := median(hauteur),by=annee]
+# n_eau[,hauteur_sc := hauteur / hauteur_y_med]
+# n_eau[,hauteur_jj_med := median(hauteur_sc),by = jj]
+# n_eau[,hauteur_anomalie := hauteur_sc - hauteur_jj_med]
+# n_eau[,anomalie_y_mean := mean(hauteur_anomalie),by = annee]
+# n_eau[,hauteur_anomalie_sc := hauteur_anomalie/anomalie_y_mean]
+
+require(data.table)
+#setDT(n_eau)
+n_eau2 <- n_eau#copie jdd
+n_eau_decal <- n_eau #deuxieme copie jdd
+#utilisation data.table
+setDT(n_eau_decal)
+
+#Objectif : visualiser de facon quantitative lorsqu'il y a une forte 
+#augmentation du niveau d'eau durant le printemps 
+#--> Faire une variable "difference" niveau d'eau = ne(n) - ne(n-1) 
+
+#Création des nouvelles variables : 
+
+#Variation sur 24h : diff_jj1 = hauteur(jj) - hauteur(jj_1) 
+n_eau_decal[,jj_1:= jj]#jj_1 prend la valeur de jj
+n_eau_decal[,jj := jj + 1]#jj prend 1 jour de +
+n_eau_decal <- n_eau_decal[,.(jj,jj_1,annee,hauteur)]#garder colonnes importantes
+setnames(n_eau_decal,"hauteur","hauteur_j1")#renommer colonnes
+
+n_eau2 <- merge(n_eau2,n_eau_decal,by = c("jj","annee"),all.x = TRUE)
+#fusionner les niveaux d'eaux + les niveaux d'eaux 2 jours avant 
+n_eau2
+
+#Variation sur 48h : diff_j2 = hauteur(jj) - hauteur(jj_2) 
+#meme mecanisme que pour jj_1
+n_eau_decal[,jj_2 := jj] 
+n_eau_decal[,jj := jj + 2]
+n_eau_decal <- n_eau_decal[,.(jj,jj_2,annee,hauteur)]
+setnames(n_eau_decal,"hauteur_j1","hauteur_j2")
+n_eau2 <- merge(n_eau2,n_eau_decal,by = c("jj","annee"),all.x = TRUE)
+n_eau2
+
+#Variation sur 72h : diff_j3 = hauteur(jj) - hauteur(jj_3) 
+#meme mecanisme que pour jj_1
+n_eau_decal[,jj_3:= jj]
+n_eau_decal[,jj := jj + 3]
+n_eau_decal <- n_eau_decal[,.(jj,jj_3,annee,hauteur_j2)]
+setnames(n_eau_decal,"hauteur_j2","hauteur_j3")
+n_eau2 <- merge(n_eau2,n_eau_decal,by = c("jj","annee"),all.x = TRUE)
+n_eau2
+
+#Création de la variable diff_jn, la difference de hauteur : 
+n_eau2[,`:=`(diff_j1 = hauteur - hauteur_j1,#Rappel jj_2 est 2 jours avant jj
+             diff_j2 = hauteur - hauteur_j2,
+             diff_j3 = hauteur - hauteur_j3)]
+#Ne garder seulement les differences supperieures a 0, donc les augmentations 
+n_eau2[,`:=`(diff_j1 = ifelse(diff_j1 <0 ,0, diff_j1),
+             diff_j2 = ifelse(diff_j2 <0 ,0, diff_j2),
+             diff_j3 = ifelse(diff_j3 <0 ,0, diff_j3))]
+#Creation de la variable seuil_jn, TRUE/FALSE, est-ce-que l'augmentation du niveau 
+#d'eau a franchi la valeur de 1.90, valeur d'innondation des prés-marais ? 
+n_eau2[,`:=`(seuil_j1 = hauteur > 1.85 & hauteur_j1 < 1.95 & diff_j1 > 0,
+             seuil_j2 = hauteur > 1.85 & hauteur_j2 < 1.95 & diff_j2 > 0,
+             seuil_j3 = hauteur > 1.85 & hauteur_j3< 1.95 & diff_j3 > 0)]
+
+#creer table hauteur/annee : 
+# année / hauteur mediane de l'annee / ecart type de l'annee / Min(niveau d'eau) / max(niveau d'eau) / diff max
+# la colonne crue seuil (TRUE/FALSE) / Nbre de jours avec TRUE / Hauteur max pour les TRUE / Diff max pour les TRUE  / hauteur d'eau au diff max 
+# pour crue seuil, faire any de la colonne seuil pour savoir s'il y a un true dans l'année 
+
+#documentation avec structuration du jeu de données 
+#d'ou vient les données, explication etc 
 
 
-
-#voir pour passer en jour julien 
-#lubridate --> #yDay + faire colonne jour + mois 
+#Graphiques : 
 
 
-#Graphique : 
-
-
-#Exemple de crue : 
+#Exemple de crue 2001 -2002: 
 n_eau_2001 <- subset(n_eau, annee == 2001)
 n_eau_2002<- subset(n_eau, annee == 2002)
 
@@ -418,7 +492,7 @@ ggplot() +
 #la fonction theme() permet de changer l'apparence du graphique, avec size pour la police en encore family 
 
 
-#Autre exemple de crue : 
+#Autre exemple de crue 2014-2015: 
 n_eau_2014 <- subset(n_eau, annee == 2014)
 n_eau_2015<- subset(n_eau, annee == 2015)
 
@@ -434,11 +508,19 @@ ggplot() +
 
 #Superposition de toutes les courbes de niveau d'eau sur 20 ans 
 ggplot(n_eau, aes(x = date, y = hauteur, group = as.factor(annee), color = as.factor(annee))) +
-  geom_line() +
+  geom_line() +# facet_wrap(.~annee,scales = "free_y")
   labs(x = "Date", y = "Hauteur (m)", title = "Hauteur du niveau d'eau sur la période du protocole", color = "Légende :") +
   scale_color_manual(values = rev(rainbow(length(unique(n_eau$annee))))) +
   theme_bw()
 
+
+#Courbes avec seuil de 1.90  
+ggplot(n_eau2, aes(x = date, y = hauteur, group = as.factor(annee),colour = diff_j1)) +
+  geom_line() +geom_point(data=subset(n_eau2,diff_j1 > 0),size=0.5)+geom_point(data=subset(n_eau2,seuil_j1),size=1.1,colour = "red")+facet_wrap(.~annee,scales = "free_y")
+  labs(x = "Date", y = "Hauteur (m)", title = "Hauteur du niveau d'eau sur la période du protocole", color = "Légende :") +
+  scale_color_manual(values = rev(rainbow(length(unique(n_eau$annee))))) +
+  theme_bw()
+  
 
 library(gridExtra)#package graphique, de meche avec ggplot
 # Créer une liste pour stocker les graphiques : 
@@ -485,7 +567,7 @@ PE_info <- merge(PE_info,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Da
 PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDANCE,
                                       type, order_tax, family_tax, e.bodymass.g.,
                                       e.seeds.nuts.grain, e.fruits.frugivory,
-                                      e.vegitative, e.invert, e.fish, ssi, sti,
+                                      e.vegitative, e.invert, e.fish, ssi, sti_europe,
                                       stri,TM, RR, RR_sum, RR_sum_spring, TM_spring,
                                       j_gel,Territoriality, Diet, migration_1, 
                                       migration_2, migration_3))
