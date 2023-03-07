@@ -437,7 +437,7 @@ n_eau2
 #meme mecanisme que pour jj_1
 n_eau_decal[,jj_2 := jj] 
 n_eau_decal[,jj := jj + 2]
-n_eau_decal <- n_eau_decal[,.(jj,jj_2,annee,hauteur)]
+n_eau_decal <- n_eau_decal[,.(jj,jj_2,annee,hauteur_j1)]
 setnames(n_eau_decal,"hauteur_j1","hauteur_j2")
 n_eau2 <- merge(n_eau2,n_eau_decal,by = c("jj","annee"),all.x = TRUE)
 n_eau2
