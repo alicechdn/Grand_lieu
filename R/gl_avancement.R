@@ -201,7 +201,7 @@ HWI_complet$species_name <- ifelse(HWI_complet$species_name == "Coloeus monedula
 #On utilise les noms scienti car pas de code crbpo dans HWI_complet
 scien_name <- info_esp[,1:5]
 scien_name <- scien_name[,-c(2:3)]
-View(scien_name)
+#View(scien_name)
 HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name",
              by.y = "species_name")# nbre de lignes = nbre d especes ? c ok 
 summary(HWI)
@@ -465,8 +465,45 @@ n_eau2[,`:=`(seuil_j1 = hauteur > 1.85 & hauteur_j1 < 1.95 & diff_j1 > 0,
              seuil_j2 = hauteur > 1.85 & hauteur_j2 < 1.95 & diff_j2 > 0,
              seuil_j3 = hauteur > 1.85 & hauteur_j3< 1.95 & diff_j3 > 0)]
 
-#creer table hauteur/annee : 
-# année / hauteur mediane de l'annee / ecart type de l'annee / Min(niveau d'eau) / max(niveau d'eau) / diff max
+# Faire le tableau recap :
+med_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, median) #Hauteur mediane par printemps 
+colnames(med_spring)[2] <- "mediane"
+mean_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, mean)#Moyenne par printemps
+colnames(mean_spring)[2] <- "moyenne"
+sd_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, sd)#ecart type associé
+colnames(sd_spring)[2] <- "sd"
+min_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, min)# hauteur min du printemps
+colnames(min_spring)[2] <- "min_hauteur"
+max_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, max)#hauteur max du printemps 
+colnames(max_spring)[2] <- "max_hauteur"
+diff_j3_max <- aggregate(n_eau2$diff_j3 ~ n_eau2$annee, data = n_eau2, max)
+colnames(diff_j3_max)[2] <- "diff_max_j3"
+crue_seuil <- aggregate(n_eau2$seuil_j3 ~ n_eau2$annee, data = n_eau2, any)
+colnames(crue_seuil)[2] <- "crue_seuil"
+somme_seuil <- aggregate(n_eau2$seuil_j3 ~ n_eau2$annee, data = n_eau2, sum)
+colnames(somme_seuil)[2] <- "somme_seuil"
+haut_max_true <- aggregate(n_eau2$hauteur ~ n_eau2$annee + seuil_j3, data = n_eau2, max) #garder seulement ceux qui sont TRUE 
+haut_max_true <- subset(haut_max_true, seuil_j3 == "TRUE") 
+haut_max_true <- subset(haut_max_true, select = -c(seuil_j3)) 
+colnames(haut_max_true)[2] <- "haut_max_true"
+diff_max_true <- aggregate(n_eau2$diff_j3 ~ n_eau2$annee + seuil_j3, data = n_eau2, max)
+diff_max_true <- subset(diff_max_true, seuil_j3 == "TRUE")
+diff_max_true <- subset(diff_max_true, select = -c(seuil_j3)) 
+colnames(diff_max_true)[2] <- "diff_max_true"
+#On fusionne tout ça maintenant : 
+table_niveau_eau <- merge(mean_spring,med_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
+table_niveau_eau <- merge(table_niveau_eau,sd_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
+table_niveau_eau <- merge(table_niveau_eau,min_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
+table_niveau_eau <- merge(table_niveau_eau,max_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
+table_niveau_eau <- merge(table_niveau_eau,diff_j3_max, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau2$annee")
+table_niveau_eau <- merge(table_niveau_eau,crue_seuil, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau2$annee")
+table_niveau_eau <- merge(table_niveau_eau,somme_seuil, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau2$annee")
+table_niveau_eau <- merge(table_niveau_eau,haut_max_true, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau2$annee")
+table_niveau_eau <- merge(table_niveau_eau,diff_max_true, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau2$annee")
+
+
+# creer table hauteur/annee : 
+# année / hauteur mediane de l'annee / ecart type de l'annee / min(niveau d'eau) / max(niveau d'eau) / diff max
 # la colonne crue seuil (TRUE/FALSE) / Nbre de jours avec TRUE / Hauteur max pour les TRUE / Diff max pour les TRUE  / hauteur d'eau au diff max 
 # pour crue seuil, faire any de la colonne seuil pour savoir s'il y a un true dans l'année 
 
@@ -842,6 +879,11 @@ md_infot1 <-  glm(family = poisson , ABONDANCE ~ RR + RR_sum, TM_spring, RR_sum_
 summary(md_infot1)#bizarre pour le nombre de jours de gel 
 
 
+
+#Extraire jdd 
+library(openxlsx)
+write.csv(PE_info, file = "PE_info.csv", row.names = TRUE)
+write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
 
 
 
