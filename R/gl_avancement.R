@@ -41,7 +41,7 @@ PE <- reshape2::melt(pod2,id=c("ANNEE","SITE"),value.name = "ABONDANCE")
 colnames(PE)[3] <- "ESPECE"
 
 
-############## 3 - CREATION DES JDD DE VARIABLES EXPLICATIVES -----------------
+############## 3 - CREATION DES JDD -----------------
 ####### a - Points d ecoute, GPS et caracteristiques : pod_site #####
 
 #Mise en forme du jdd
@@ -62,7 +62,7 @@ PE_RNR <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPH
 PE_ZPS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_ZPS.csv")
 PE_SITE_CLASS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_SITE_CLASSE.csv")
 PE_SITE_INS <- read_csv("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/CARTOGRAPHIE/WORK/table attributaire/ta_PE_SITE_INSCRIT.csv")
-#ils ont tous Ã©tÃ© crÃ©es sur QGIS 
+#ils ont tous ete crees sur QGIS 
 #Attention, n est pas reproductible si la personne n a pas ces fichiers ! 
 #suppression les colonnes inutiles : 
 PE_RNN <- subset(PE_RNN, select = c(Site, Nom))#lieu et statut seulemt
@@ -105,6 +105,10 @@ hab <- read_excel("C:/git/Grand_lieu/DATA/habitats.xlsx",
                   col_names = TRUE)
 hab$Site <- gsub("[éèêë]", "e", hab$Site, ignore.case = TRUE)
 hab$Site <- gsub("[àâ]", "a", hab$Site, ignore.case = TRUE)
+pod_site <- merge(pod_site, hab, all.x = TRUE, by = "Site")
+pod_site <- subset(pod_site, select = -c(Nom, ID_LOCAL, SITECODE,id_regiona, id_entite))
+#Pointe ou friche de l'Arsangle pas present ?? 
+
 
 ####### c - Les noms vernaculaires des oiseaux : code_crbpo #####
 
@@ -588,36 +592,63 @@ grid.arrange(grobs = plots_list, ncol = 4)#grobs pour afficher une liste
 
 
 
-####### k - Creation PE_info #############
+####### k - Creation info_especes #############
 
-
-PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
-#PE_info <- PE_info[,-c(6:17)]#pour ne garder que les colonnes qui m interesse
-#/!\ Attention /!\ 
-#saisi des codes crbpo diff entre les jdd 
-#il faut verifier que tous les codes soient les memes :
-unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
-# si egal a 0 alors c est ok 
-
+info_especes <- merge(code_crbpo,info_esp, all.x = TRUE, by = "ESPECE")
+ 
 #Remplir PE_info avec tous les jdd 
-PE_info <- merge(PE_info,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
-PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
-PE_info <- merge(PE_info,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd 
-PE_info <- merge(PE_info,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd 
+info_especes <- merge(info_especes,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
+test <- merge(code_crbpo,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd
+info_especes <- merge(info_especes,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
+info_especes <- merge(info_especes,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd
 
-#Selectionner les colonnes que l'on veut : 
-PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDANCE,
-                                      type, order_tax, family_tax, e.bodymass.g.,
+#Selectionner les colonnes que l'on veut :
+info_especes <- subset(info_especes, select = c(, order_tax, family_tax, e.bodymass.g.,
                                       e.seeds.nuts.grain, e.fruits.frugivory,
                                       e.vegitative, e.invert, e.fish, ssi, sti_europe,
-                                      stri,Territoriality, Diet, migration_1, 
+                                      stri,Territoriality, Diet, migration_1,
                                       migration_2, migration_3))
-PE_info$SITE <- gsub("[éèêë]", "e", PE_info$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux 
-PE_info$SITE <- gsub("[àâ]", "a", PE_info$SITE, ignore.case = TRUE)
-colnames(PE_info)[1] <- "CODE"
-colnames(PE_info[2]) <- "NOM_FR_BIRD"
-setnames(PE_info,"type","TYPE")
-setna
+info_especes$SITE <- gsub("[éèêë]", "e", info_especes$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux
+info_especes$SITE <- gsub("[àâ]", "a", info_especes$SITE, ignore.case = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+# PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
+# #PE_info <- PE_info[,-c(6:17)]#pour ne garder que les colonnes qui m interesse
+# #/!\ Attention /!\ 
+# #saisi des codes crbpo diff entre les jdd 
+# #il faut verifier que tous les codes soient les memes :
+# unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
+# # si egal a 0 alors c est ok 
+# 
+# #Remplir PE_info avec tous les jdd 
+# PE_info <- merge(PE_info,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
+# PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
+# PE_info <- merge(PE_info,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd 
+# PE_info <- merge(PE_info,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd 
+# 
+# #Selectionner les colonnes que l'on veut : 
+# PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDANCE,
+#                                       type, order_tax, family_tax, e.bodymass.g.,
+#                                       e.seeds.nuts.grain, e.fruits.frugivory,
+#                                       e.vegitative, e.invert, e.fish, ssi, sti_europe,
+#                                       stri,Territoriality, Diet, migration_1, 
+#                                       migration_2, migration_3))
+# PE_info$SITE <- gsub("[éèêë]", "e", PE_info$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux 
+# PE_info$SITE <- gsub("[àâ]", "a", PE_info$SITE, ignore.case = TRUE)
+# colnames(PE_info)[1] <- "CODE"
+# colnames(PE_info[2]) <- "NOM_FR_BIRD"
+# setnames(PE_info,"type","TYPE")
+# setna
 
 #changer le nom des colonnes 
 
@@ -893,7 +924,7 @@ summary(md_infot1)#bizarre pour le nombre de jours de gel
 library(openxlsx)
 write.csv(PE_info, file = "PE_info.csv", row.names = TRUE)
 write.xlsx(PE_info, file = "PE_info.xlsx", sheetName = TRUE)
-
+write.xlsx(pod_site, file = "pod_site.xlsx", sheetName = TRUE)
 write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
 write.xlsx(meteo_y_etude, file = "meteo_gl_final.xlsx", sheetName = TRUE)
 
