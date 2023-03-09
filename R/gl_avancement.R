@@ -97,7 +97,7 @@ barplot(table(pod_site$protec),
 
 rm(pod, pod2, PE_RNN, PE_RNR, PE_ZPS, PE_SITE_CLASS, PE_SITE_INS)#suppr les inutiles
 
-
+### Attention il faut refaire la classification et enlever ZPS qui n'a pas grand interet dans la protection des oiseaux 
 
 ####### b - Caracteristique de l'habitat : ######
 
@@ -108,7 +108,6 @@ hab <- read_excel("C:/git/Grand_lieu/DATA/habitats.xlsx",
 hab$Site <- gsub("[éèêë]", "e", hab$Site, ignore.case = TRUE)
 hab$Site <- gsub("[àâ]", "a", hab$Site, ignore.case = TRUE)
 pod_site <- merge(pod_site, hab, all.x = TRUE, by = "Site")
-#Pointe ou friche de l'Arsangle pas present ?? 
 
 
 ####### c - Les noms vernaculaires des oiseaux : code_crbpo #####
@@ -287,7 +286,7 @@ meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
 #attention on prend avril en + !! 
 #Creation nouvel objet qui contient le nbre de jours de gel :
 gel <- aggregate(TM ~ fin_hiver,data = meteo_gl,
-                 FUN = function(X) sum(as.numeric(X < 0)));colnames(gel) <-c("Date_y", "j_gel")
+                 FUN = function(X) sum(as.numeric(X < 0)));colnames(gel) <-c("Date_y", "j_rude")
 #on lui dit de compter le nombre de fois ou les valeurs sont inf Ã  0 
 
 #Inclure cette nouvelle variable dans le jdd : 
@@ -357,7 +356,7 @@ plot(dt_y_printemps$TM_spring ~ dt_y_printemps$Date_y, type = "b",
      xlab = "Annees", ylab = "Temperature (Â°C)")
 #flagrant l'augmentation des temperatures...
 
-plot(meteo_y_etude$j_gel~ meteo_y_etude$Date_y,
+plot(meteo_y_etude$j_rude~ meteo_y_etude$Date_y,
      type = "b", main = "Nombre de journÃ©es rudes par hiver",
      xlab = "Annee", ylab = "Nb de jours")
 
@@ -599,25 +598,25 @@ info_especes <- merge(code_crbpo,info_esp, all.x = TRUE, by = "ESPECE")
  
 #Remplir PE_info avec tous les jdd 
 info_especes <- merge(info_especes,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
-test <- merge(code_crbpo,geb, all.x = TRUE,all.y = FALSE,  by.x = "ESPECE", by.y = "code")#fusion des deux jdd
+prov <- merge(code_crbpo,geb, all.x = TRUE,  by.x = "ESPECE", by.y = "code")#fusion des deux jdd
+#ici, le merge me fait 2 lignes en double et je ne comprends pas pourquoi
+#il s'agit des lignes 29 et 81 (corneille noire et marouette de baillon )
+prov <- prov[-c(29,81),]# je sais ce nest pas bien, mais je ne comprends pas... 
+info_especes<- merge(info_especes,prov, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
 info_especes <- merge(info_especes,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
-info_especes <- merge(info_especes,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd
 
+info_especes <- subset(info_especes, select = - c(NOM_FR_BIRD.y, pk_species, niveau_taxo,class_tax,
+                                                  scientific_name.y, scientific_name_2.y, Synonym, Notes))
+
+                                                  
+#voir pourquoi NA sur le verdier d'europe ?                                                   
+                                                  
 #Selectionner les colonnes que l'on veut :
-info_especes <- subset(info_especes, select = c(, order_tax, family_tax, e.bodymass.g.,
-                                      e.seeds.nuts.grain, e.fruits.frugivory,
-                                      e.vegitative, e.invert, e.fish, ssi, sti_europe,
-                                      stri,Territoriality, Diet, migration_1,
-                                      migration_2, migration_3))
-info_especes$SITE <- gsub("[éèêë]", "e", info_especes$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux
-info_especes$SITE <- gsub("[àâ]", "a", info_especes$SITE, ignore.case = TRUE)
-
-
-
-
-
-
-
+# # info_especes <- subset(info_especes, select = c(, order_tax, family_tax, e.bodymass.g.,
+#                                       e.seeds.nuts.grain, e.fruits.frugivory,
+#                                       e.vegitative, e.invert, e.fish, ssi, sti_europe,
+#                                       stri,Territoriality, Diet, migration_1,
+#                                       migration_2, migration_3))
 
 
 
@@ -925,6 +924,7 @@ summary(md_infot1)#bizarre pour le nombre de jours de gel
 library(openxlsx)
 write.csv(PE_info, file = "PE_info.csv", row.names = TRUE)
 write.xlsx(PE_info, file = "PE_info.xlsx", sheetName = TRUE)
+write.xlsx(info_especes, file = "info_especes.xlsx", sheetName = TRUE)
 write.xlsx(pod_site, file = "pod_site.xlsx", sheetName = TRUE)
 write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
 write.xlsx(meteo_y_etude, file = "meteo_gl_final.xlsx", sheetName = TRUE)
