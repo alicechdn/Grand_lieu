@@ -50,8 +50,8 @@ pod_site<-subset(pod_site, Site != "TOTAL")#garder tout sauf ligne total
 #View(pod_site) 
 dim(pod_site)#120 lignes = 120 points d ecoute ---> c'est ok
 #Suppression des caracteres speciaux dans le nom des lieux : 
-pod_site$Site <- gsub("[Ã©Ã¨ÃªÃ«]", "e", pod_site$Site, ignore.case = TRUE)
-pod_site$Site <- gsub("[Ã Ã¢Ã¤]", "a", pod_site$Site, ignore.case = TRUE)
+pod_site$Site <- gsub("[éèêë]", "e", pod_site$Site, ignore.case = TRUE)
+pod_site$Site <- gsub("[àâ]", "a", pod_site$Site, ignore.case = TRUE)
 #ignore.case permet d'ignorer MAJ/min sur les lettres 
 
 #STATUT DE PROTECTION 
@@ -97,10 +97,13 @@ rm(pod, pod2, PE_RNN, PE_RNR, PE_ZPS, PE_SITE_CLASS, PE_SITE_INS)#suppr les inut
 
 
 
-####### b - CaractÃ©ristique de l'habitat : ######
+####### b - Caracteristique de l'habitat : ######
 
-#### en attente des donnees 
-
+#Chargement jdd 
+library(readxl)
+hab <- read_excel("C:/git/Grand_lieu/DATA/habitats.xlsx",
+                  col_names = TRUE)
+# il est en protege 
 ####### c - Les noms vernaculaires des oiseaux : code_crbpo #####
 
 library(readxl)
@@ -560,10 +563,10 @@ ggplot(n_eau2, aes(x = date, y = hauteur, group = as.factor(annee),colour = diff
   
 
 library(gridExtra)#package graphique, de meche avec ggplot
-# CrÃ©er une liste pour stocker les graphiques : 
+# Creer une liste pour stocker les graphiques : 
 plots_list <- list()
 
-# Boucle pour crÃ©er un graphique pour chaque annÃ©e
+# Boucle pour creer un graphique pour chaque annee
 for (i in 2016:2022) { #pour tous les ans : max(n_eau$annee)
   data_year <- n_eau[n_eau$annee == i,]# filtrer les donnÃ©es pour l'annÃ©e i
   # CrÃ©er le graphique pour l'annÃ©e i
@@ -583,7 +586,7 @@ grid.arrange(grobs = plots_list, ncol = 4)#grobs pour afficher une liste
 
 
 
-####### k - CrÃ©ation PE_info #############
+####### k - Creation PE_info #############
 
 
 PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
@@ -592,7 +595,7 @@ PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
 #saisi des codes crbpo diff entre les jdd 
 #il faut verifier que tous les codes soient les memes :
 unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
-# si egal Ã  0 alors c est ok 
+# si egal a 0 alors c est ok 
 
 #Remplir PE_info avec tous les jdd 
 PE_info <- merge(PE_info,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
@@ -605,12 +608,11 @@ PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDA
                                       type, order_tax, family_tax, e.bodymass.g.,
                                       e.seeds.nuts.grain, e.fruits.frugivory,
                                       e.vegitative, e.invert, e.fish, ssi, sti_europe,
-                                      stri,TM, RR, RR_sum, RR_sum_spring, TM_spring,
-                                      j_gel,Territoriality, Diet, migration_1, 
+                                      stri,Territoriality, Diet, migration_1, 
                                       migration_2, migration_3))
-
+PE_info$SITE <- gsub("[éèêë]", "e", PE_info$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux 
+PE_info$SITE <- gsub("[àâ]", "a", PE_info$SITE, ignore.case = TRUE)
 #changer le nom des colonnes 
-#il manque habitat (en categorie) : Seb tente de le retrouver 
 
 ############## 4 - Analyses descriptives du jdd #######
 
@@ -883,7 +885,9 @@ summary(md_infot1)#bizarre pour le nombre de jours de gel
 #Extraire jdd 
 library(openxlsx)
 write.csv(PE_info, file = "PE_info.csv", row.names = TRUE)
-write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
+write.xlsx(PE_info, file = "PE_info.xlsx", sheetName = TRUE)
 
+write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
+write.xlsx(meteo_y_etude, file = "meteo_gl_final.xlsx", sheetName = TRUE)
 
 
