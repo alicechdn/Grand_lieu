@@ -12,6 +12,7 @@
 library(readxl)
 pod <- read_excel("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/ANALYSES/DATA/dataPE.xlsx",
                   col_names = TRUE)
+pod$Site <- ifelse(pod$Site == "Pointe ou friche de l'Arsangle", "Pointe de l'Arsangle", pod$Site)
 
 #VISUALISER ET RESUME DU JDD
 #View(pod) #voir
@@ -48,7 +49,7 @@ colnames(PE)[3] <- "ESPECE"
 pod_site <- unique(pod[,2:4])
 pod_site<-subset(pod_site, Site != "TOTAL")#garder tout sauf ligne total 
 #View(pod_site) 
-dim(pod_site)#120 lignes = 120 points d ecoute ---> c'est ok
+dim(pod_site)#119 lignes = 119 points d ecoute ---> c'est ok
 #Suppression des caracteres speciaux dans le nom des lieux : 
 pod_site$Site <- gsub("[йикл]", "e", pod_site$Site, ignore.case = TRUE)
 pod_site$Site <- gsub("[ав]", "a", pod_site$Site, ignore.case = TRUE)
@@ -87,6 +88,7 @@ pod_site$protec <- paste0(ifelse(is.na(pod_site$ID_LOCAL), "", "RNR"),
                           ifelse(is.na(pod_site$id_entite), "", "site inscrit"))
 pod_site$protec[pod_site$protec == ""] <- "aucune"
 pod_site$protec <-as.factor(pod_site$protec)
+pod_site <- subset(pod_site, select = -c(Nom, ID_LOCAL, SITECODE,id_regiona, id_entite))
 table(pod_site$protec)
 barplot(table(pod_site$protec),
         main = "repartition des statut de protection des points d ecoute")
@@ -106,7 +108,6 @@ hab <- read_excel("C:/git/Grand_lieu/DATA/habitats.xlsx",
 hab$Site <- gsub("[йикл]", "e", hab$Site, ignore.case = TRUE)
 hab$Site <- gsub("[ав]", "a", hab$Site, ignore.case = TRUE)
 pod_site <- merge(pod_site, hab, all.x = TRUE, by = "Site")
-pod_site <- subset(pod_site, select = -c(Nom, ID_LOCAL, SITECODE,id_regiona, id_entite))
 #Pointe ou friche de l'Arsangle pas present ?? 
 
 
@@ -598,7 +599,7 @@ info_especes <- merge(code_crbpo,info_esp, all.x = TRUE, by = "ESPECE")
  
 #Remplir PE_info avec tous les jdd 
 info_especes <- merge(info_especes,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
-test <- merge(code_crbpo,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd
+test <- merge(code_crbpo,geb, all.x = TRUE,all.y = FALSE,  by.x = "ESPECE", by.y = "code")#fusion des deux jdd
 info_especes <- merge(info_especes,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
 info_especes <- merge(info_especes,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd
 
