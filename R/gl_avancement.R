@@ -103,7 +103,9 @@ rm(pod, pod2, PE_RNN, PE_RNR, PE_ZPS, PE_SITE_CLASS, PE_SITE_INS)#suppr les inut
 library(readxl)
 hab <- read_excel("C:/git/Grand_lieu/DATA/habitats.xlsx",
                   col_names = TRUE)
-# il est en protege 
+hab$Site <- gsub("[éèêë]", "e", hab$Site, ignore.case = TRUE)
+hab$Site <- gsub("[àâ]", "a", hab$Site, ignore.case = TRUE)
+
 ####### c - Les noms vernaculaires des oiseaux : code_crbpo #####
 
 library(readxl)
@@ -612,11 +614,16 @@ PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDA
                                       migration_2, migration_3))
 PE_info$SITE <- gsub("[éèêë]", "e", PE_info$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux 
 PE_info$SITE <- gsub("[àâ]", "a", PE_info$SITE, ignore.case = TRUE)
+colnames(PE_info)[1] <- "CODE"
+colnames(PE_info[2]) <- "NOM_FR_BIRD"
+setnames(PE_info,"type","TYPE")
+setna
+
 #changer le nom des colonnes 
 
 ############## 4 - Analyses descriptives du jdd #######
 
-#Indices de diversitÃ© ?
+#Indices de diversité ?
 
 #POUR LA DESCRIPTION JE CREE UN JDD SANS LES 0 
 PE_obs<-subset(PE, ABONDANCE != 0 )
