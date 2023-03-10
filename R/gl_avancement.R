@@ -42,7 +42,7 @@ PE <- reshape2::melt(pod2,id=c("ANNEE","SITE"),value.name = "ABONDANCE")
 colnames(PE)[3] <- "ESPECE"
 
 
-############## 3 - CREATION DES JDD -----------------
+############## 3 - CREATION DES JDD EXPLICATIFS -----------------
 ####### a - Points d ecoute, GPS et caracteristiques : pod_site #####
 
 #Mise en forme du jdd
@@ -99,7 +99,7 @@ rm(pod, pod2, PE_RNN, PE_RNR, PE_ZPS, PE_SITE_CLASS, PE_SITE_INS)#suppr les inut
 
 ### Attention il faut refaire la classification et enlever ZPS qui n'a pas grand interet dans la protection des oiseaux 
 
-####### b - Caracteristique de l'habitat : ######
+# Caracteristique de l'habitat : 
 
 #Chargement jdd 
 library(readxl)
@@ -110,7 +110,7 @@ hab$Site <- gsub("[àâ]", "a", hab$Site, ignore.case = TRUE)
 pod_site <- merge(pod_site, hab, all.x = TRUE, by = "Site")
 
 
-####### c - Les noms vernaculaires des oiseaux : code_crbpo #####
+####### b - Les noms vernaculaires des oiseaux : code_crbpo #####
 
 library(readxl)
 code_crbpo <- read_excel("C:/git/Grand_lieu/DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
@@ -125,7 +125,7 @@ library(dplyr)
 PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des colonnes
 #View(PE)
 
-####### d - La liste des especes en comptage exaustif : liste #######
+####### c - La liste des especes en comptage exaustif : liste #######
 #La liste des comptages exaustifs a ete faite a la main 
 #Pourquoi il n'y a pas les autres rapaces dans ce mode de comptage ? 
 library(readr)
@@ -151,7 +151,7 @@ rm(code_crbpo2)
 
 
 
-####### e - La famille et l ordre de chaque espece : info_esp et PE_info #####
+####### d - La famille et l ordre de chaque espece : info_esp  #####
 
 
 library(readr)
@@ -169,7 +169,7 @@ info_esp <- merge(code_crbpo, info_esp_complet, by.x = "ESPECE", by.y = "code_cr
 rm(info_esp_complet)#supprimer info_esp_complet qui ne sert plus a rien 
 
 
-####### f - Le poids des esp, leur regime alimentaire et autre : geb #####
+####### e - Le poids des esp, leur regime alimentaire et autre : geb #####
 
 #chargement du jdd avec les poids moyen des esp 
 #attention triche : je l ai converti en csv 
@@ -184,7 +184,7 @@ summary(geb)
 #View(geb)
 #geb$POIDS <- as.numeric(geb$POIDS) #ne pas faire pour l'instant car introduit des NA
 
-####### g - Gradient de specialisation : ind_fonction  #######
+####### f - Gradient de specialisation : ind_fonction  #######
 
 library(readr)
 ind_fonction<- read_csv("C:/git/Grand_lieu/DATA/espece_indicateur_fonctionel.csv")
@@ -195,7 +195,7 @@ ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" 
 
 
 
-####### h - La migration des oiseaux : HWI ##### 
+####### g - La migration des oiseaux : HWI ##### 
 
 setwd("C:/git/Grand_lieu/DATA")
 library(readxl)
@@ -232,7 +232,7 @@ barplot(table(HWI$migration_2), main = "repartition des especes migratrices sur 
 rm(scien_name, HWI_complet)#supprimer HWI_complet qui ne sert plus a rien 
 
 
-####### i - La meteo de grand lieu : meteo_gl #######
+####### h - La meteo de grand lieu : meteo_gl #######
 
 library(readr) 
 meteo_gl<- read_csv2("C:/git/Grand_lieu/DATA/AnnualData19602021.csv")
@@ -366,7 +366,7 @@ rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y, meteo_gl, meteo_y)
 
 
 
-####### j - Niveaux d'eaux : n_eau  #######
+####### i - Niveaux d'eaux : n_eau  #######
 
 
 
@@ -592,7 +592,7 @@ grid.arrange(grobs = plots_list, ncol = 4)#grobs pour afficher une liste
 
 
 
-####### k - Creation info_especes #############
+####### j - Creation info_especes #############
 
 info_especes <- merge(code_crbpo,info_esp, all.x = TRUE, by = "ESPECE")
  
@@ -652,7 +652,7 @@ info_especes <- subset(info_especes, select = - c(NOM_FR_BIRD.y, pk_species, niv
 
 #changer le nom des colonnes 
 
-############## 4 - Analyses descriptives du jdd #######
+############## 4 - ANALYSES DESCRIPTIVES #######
 
 #Indices de diversité ?
 
@@ -813,7 +813,7 @@ par(las = 2) #las = 2 permet d'incliner a 90 les axes
 barplot(GT2$NB_ESP, names.arg = GT2$FMTAX, xlab = "FAMILLE taxo", 
         ylab = "nombre d'especes", main = "Nombre d'espÃ¨ces d'oiseaux par famille", cex.names = 0.8)
 
-####### f - Les rÃ©gimes alimentaires ####### 
+####### f - Les regimes alimentaires ####### 
 #les infos des regimes alimentaires sont stockees dans le jdd "geb" 
 #bien que je ne comprends pas tous les noms de variables, 
 #on va regarder tout ca : 
@@ -867,63 +867,14 @@ barplot(geb_ss$e.bodymass.g., main="Poids des espÃ¨ces d'oiseaux de grand lieu",
 
 
 
-########### 5 - EXPORTER LE JDD FINAL 
+########### 5 - EXPORTER LE JDD FINAL #######
 
-#write.csv
-
-
-#####################
-#
-#
-#           PARTIE 2 : Les Analyses 
-#
-#
-####################
-
-
-####### 6 - Variations d'abondances #######
-summary(PE)
-PE$type <-as.factor(PE$type)
-#test et bidouillage pour voir ce qui sort : 
-
-
-#ABONDANCE EN FONCTION DES ANNEES EN GAUSSIEN : 
-md <- glm(family = gaussian, ABONDANCE ~ ANNEE, data =PE)
-summary(md)
-
-#ABONDANCE EN FONCTION DES ANNEES EN POISSON : 
-md <- glm(family = poisson, ABONDANCE ~ ANNEE, data =PE)
-summary(md)
-
-#ABONDANCE EN FONCTION DES ANNEES EN quasiPOISSON : 
-md <- glm(family = quasipoisson, ABONDANCE ~ ANNEE, data =PE)
-summary(md)
-
-PEtest <- subset(PE, type == "0")
-PErousserolleeffar <- subset(PE, ESPECE == "ACRSCI") 
-
-md <- glm(family = poisson, ABONDANCE ~ SITE , data =PEtest)
-summary(md)
-
-
-mdrouss <- glm(family = poisson , ABONDANCE ~ ANNEE, data = PErousserolleeffar)
-summary(mdrouss)#on perd -0,07 rousserolle par an ? trÃ¨s significatif 
-mdrouss2 <- glm(family = poisson , ABONDANCE ~ SITE, data = PErousserolleeffar)
-summary(mdrouss2)
-
-#PAS DE DONNEES METEO POUR 2022 !!! 
-md_info <-  glm(family = poisson , ABONDANCE ~ TM + RR + j_gel, data = PE_info)
-summary(md_info)#bizarre pour le nombre de jours de gel 
-
-md_infot1 <-  glm(family = poisson , ABONDANCE ~ RR + RR_sum, TM_spring, RR_sum_spring,j_gel, data = PE_infot1)
-summary(md_infot1)#bizarre pour le nombre de jours de gel 
-
-
+#write.csv ou write.xlsx avec package openxlsx
 
 #Extraire jdd 
 library(openxlsx)
-write.csv(PE_info, file = "PE_info.csv", row.names = TRUE)
-write.xlsx(PE_info, file = "PE_info.xlsx", sheetName = TRUE)
+write.csv(PE_info, file = "PE.csv", row.names = TRUE)
+write.xlsx(PE, file = "PE.xlsx", sheetName = TRUE)
 write.xlsx(info_especes, file = "info_especes.xlsx", sheetName = TRUE)
 write.xlsx(pod_site, file = "pod_site.xlsx", sheetName = TRUE)
 write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
