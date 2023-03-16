@@ -1,17 +1,18 @@
-######################
-#
-#
-#             PARTIE 1 - CREATION DU JDD 
-#
-#
-#####################
-############## 1 - CHARGEMENT DU JDD BRUT : pod ########
+#Partie 1 : la creation des jdd exploitables sur R 
 
+######################"
+#
+#
+############## 1 -       CHARGEMENT DU JDD BRUT : pod        ----------------
+#
+#
+#####################"
 
-#setwd("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/DATA")
 library(readxl)
 pod <- read_excel("C:/Users/SPECTRE/Desktop/PROFESSIONNEL/STAGE/SNPN/ANALYSES/DATA/dataPE.xlsx",
-                  col_names = TRUE)
+                  col_names = TRUE)#mettre le chemin entier pour trouver le fichier
+
+#Corriger un changement de nom dans les points d'ecoute : 
 pod$Site <- ifelse(pod$Site == "Pointe ou friche de l'Arsangle", "Pointe de l'Arsangle", pod$Site)
 
 #VISUALISER ET RESUME DU JDD
@@ -20,8 +21,15 @@ summary(pod) #resume
 dim(pod)# dimensions : nbre de lignes puis de colonnes
 
 
+######################"
+#
+#
+############## 2 -  CREATION DU JDD EXPLOITABLE SUR R - une ligne par obs #######
+#
+#
+#####################"
 
-############## 2 - CREATION DU JDD EXPLOITABLE SUR R - une ligne par obs #######
+
 ####### a - Nettoyer lignes et colonnes et renommer variables : pod2 #####
 
 
@@ -41,8 +49,15 @@ dim(pod2)#dimensions : on a 20 lignes en moins et deux colonnes en moins? alors 
 PE <- reshape2::melt(pod2,id=c("ANNEE","SITE"),value.name = "ABONDANCE")
 colnames(PE)[3] <- "ESPECE"
 
+######################"
+#
+#
+############## 3 -     CREATION DES JDD EXPLICATIFS      -----------------
+#
+#
+#####################"
 
-############## 3 - CREATION DES JDD EXPLICATIFS -----------------
+
 ####### a - Points d ecoute, GPS et caracteristiques : pod_site #####
 
 #Mise en forme du jdd
@@ -71,7 +86,7 @@ PE_RNR <- subset(PE_RNR, select = c(Site,ID_LOCAL)) #RNR191
 PE_ZPS <- subset(PE_ZPS, select = c(Site, SITECODE))# FR5210008
 PE_SITE_CLASS <- subset(PE_SITE_CLASS, select = c(Site, id_regiona))#4449
 PE_SITE_INS <- subset(PE_SITE_INS, select = c(Site, id_entite))#b
-dim(pod_site)
+dim(pod_site)#119 lignes --> ok
 
 #integrer chaque protection dans pod_site :
 pod_site <- merge(pod_site,PE_RNN, all.x = TRUE, by = "Site")
@@ -81,8 +96,8 @@ pod_site <- merge(pod_site,PE_SITE_CLASS, all.x = TRUE, by = "Site")
 pod_site <- merge(pod_site,PE_SITE_INS, all.x = TRUE, by = "Site")
 
 #Fusionner les colonnes ensemble 
-pod_site$protec <- paste0(ifelse(is.na(pod_site$ID_LOCAL), "", "RNR"),
-                          ifelse(is.na(pod_site$SITECODE), "", "ZPS"),
+pod_site$protec <- paste0(ifelse(is.na(pod_site$ID_LOCAL), "", "RNR"),#paste0 pour concatener et mettre en character
+                          ifelse(is.na(pod_site$SITECODE), "", "site classe"),
                           ifelse(is.na(pod_site$Nom), "", "RNN"), 
                           ifelse(is.na(pod_site$id_regiona), "", "site classe"),
                           ifelse(is.na(pod_site$id_entite), "", "site inscrit"))
@@ -91,26 +106,54 @@ pod_site$protec <-as.factor(pod_site$protec)
 pod_site <- subset(pod_site, select = -c(Nom, ID_LOCAL, SITECODE,id_regiona, id_entite))
 table(pod_site$protec)
 barplot(table(pod_site$protec),
-        main = "repartition des statut de protection des points d ecoute")
-#Jai fait le choix de ne faire qu'une variable avec le statut de protection 
-#le plus fort, ex: ceux en RNN sont aussi en ZPS mais ZPS moins fort que RNN 
+        main = "R�partition des statuts de protection des points d'�coute", 
+        xlab = "Cat�gorie", ylab = "Nombre de PE")
 
 rm(pod, pod2, PE_RNN, PE_RNR, PE_ZPS, PE_SITE_CLASS, PE_SITE_INS)#suppr les inutiles
 
-### Attention il faut refaire la classification et enlever ZPS qui n'a pas grand interet dans la protection des oiseaux 
 
 # Caracteristique de l'habitat : 
 
-#Chargement jdd 
+#Chargement jdd des caracteristiques des habitats
 library(readxl)
-hab <- read_excel("C:/git/Grand_lieu/DATA/habitats.xlsx",
-                  col_names = TRUE)
+hab <- read_excel("C:/git/Grand_lieu/DATA/habitats.xlsx",col_names = TRUE)
 hab$Site <- gsub("[����]", "e", hab$Site, ignore.case = TRUE)
 hab$Site <- gsub("[��]", "a", hab$Site, ignore.case = TRUE)
-pod_site <- merge(pod_site, hab, all.x = TRUE, by = "Site")
 
+
+#C'est quoi deja ZCS ? 
+
+#Chargement jdd explication de hab
+library(readxl)
+hab_expl <- read_excel("C:/git/Grand_lieu/DATA/habitats_expl.xlsx",col_names = TRUE)
+c_hab <- subset(hab_expl, select = c(code_hab,habitats))
+c_ZI <- subset(hab_expl, select = c(code_hab,ZI))
+c_route <- subset(hab_expl, select = c(code_hab,route))
+c_derangement <- subset(hab_expl, select = c(code_hab,derangement))
+
+
+#Remplacement des numeros par les noms des habitats 
+hab_name <- merge(hab, c_hab, all.x = TRUE, by.x = "Habitat_1", by.y = "code_hab")
+library(data.table)
+setnames(hab_name,"habitats","habitat_1_n")
+hab_name <- merge(hab_name, c_hab, all.x = TRUE, by.x = "Habitat_2", by.y = "code_hab")
+setnames(hab_name,"habitats","habitat_2_n")
+hab_name <- merge(hab_name, c_hab, all.x = TRUE, by.x = "Habitat_3", by.y = "code_hab")
+setnames(hab_name,"habitats","habitat_3_n")
+hab_name <- merge(hab_name, c_ZI, all.x = TRUE, by.x = "ZI", by.y = "code_hab")
+setnames(hab_name,"ZI.y","ZI_n")
+hab_name <- merge(hab_name, c_route, all.x = TRUE, by.x = "Route", by.y = "code_hab")
+hab_name <- merge(hab_name, c_derangement, all.x = TRUE, by.x = "Derangement", by.y = "code_hab")
+
+hab_name <- subset(hab_name, select = c(Site, ZSC, habitat_1_n, habitat_2_n, habitat_3_n, ZI_n, route, derangement))
+
+#est-ce qu'on fait un merge avec les codes numeros, ou directement les noms ? 
+#pod_site <- merge(pod_site, hab, all.x = TRUE, by = "Site")
+rm(c_derangement, c_hab, c_route, c_ZI)
 
 ####### b - Les noms vernaculaires des oiseaux : code_crbpo #####
+
+
 
 library(readxl)
 code_crbpo <- read_excel("C:/git/Grand_lieu/DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
@@ -127,7 +170,6 @@ PE <-select(PE, ANNEE, SITE, ESPECE, NOM_FR_BIRD,ABONDANCE)#data puis ordre des 
 
 ####### c - La liste des especes en comptage exaustif : liste #######
 #La liste des comptages exaustifs a ete faite a la main 
-#Pourquoi il n'y a pas les autres rapaces dans ce mode de comptage ? 
 library(readr)
 liste <- read_csv("C:/git/Grand_lieu/DATA/liste_comptage_exaustif.csv"); colnames(liste)<- "code"
 summary(liste)
@@ -142,6 +184,7 @@ PE <-merge(PE,code_crbpo2, by = "ESPECE", all.x = TRUE )
 #1 = le comptage est exaustif, tous les individus sont comptes 
 #0 = le comptage n'est pas exaustif et se fait par le nbre de males chanteurs 
 #les rapaces ne sont pas en exaustif ?
+
 summary(code_crbpo2)
 code_crbpo2$ESPECE <-as.factor(code_crbpo2$ESPECE)
 sum(code_crbpo2$type)#le nombre d'especes avec un protocole exaustif : 
@@ -161,15 +204,14 @@ summary(info_esp_complet)
 #Faire la correction du code crbpo diff entre les jdd :
 info_esp_complet$code_crbpo <- ifelse(info_esp_complet$pk_species == "LANSEN" , "LANSER" , info_esp_complet$pk_species)
 #fonction ifelse = ptite boucle avec Si ... alors ... sinon ...) 
-
-
 info_esp <- merge(code_crbpo, info_esp_complet, by.x = "ESPECE", by.y = "code_crbpo")
-#niquel, il faut maintenant que je supprime pk_species qui a le mauvais code crbpo
-
 rm(info_esp_complet)#supprimer info_esp_complet qui ne sert plus a rien 
 
 
+
 ####### e - Le poids des esp, leur regime alimentaire et autre : geb #####
+
+
 
 #chargement du jdd avec les poids moyen des esp 
 #attention triche : je l ai converti en csv 
@@ -184,6 +226,8 @@ summary(geb)
 #View(geb)
 #geb$POIDS <- as.numeric(geb$POIDS) #ne pas faire pour l'instant car introduit des NA
 
+
+
 ####### f - Gradient de specialisation : ind_fonction  #######
 
 library(readr)
@@ -197,6 +241,7 @@ ind_fonction$pk_species<- ifelse(ind_fonction$pk_species == "LANSEN" , "LANSER" 
 
 ####### g - La migration des oiseaux : HWI ##### 
 
+
 setwd("C:/git/Grand_lieu/DATA")
 library(readxl)
 HWI_complet <- read_excel("Dataset_HWI_2020-04-10_shread_2020_naturecom.xlsx")
@@ -208,25 +253,22 @@ HWI_complet$species_name <- ifelse(HWI_complet$species_name == "Coloeus monedula
 
 #Extraire les especes de notre protocole:  
 #On utilise les noms scienti car pas de code crbpo dans HWI_complet
-scien_name <- info_esp[,1:5]
-scien_name <- scien_name[,-c(2:3)]
-#View(scien_name)
+scien_name <- info_esp[,1:5] ; scien_name <- scien_name[,-c(2:3)]
 HWI <- merge(scien_name,HWI_complet, all.x = TRUE, by.x = "scientific_name",
              by.y = "species_name")# nbre de lignes = nbre d especes ? c ok 
 summary(HWI)
 HWI$Diet <- as.factor(HWI$Diet)
 HWI$Territoriality <- as.factor(HWI$Territoriality)
-barplot(table(HWI$Diet), main = "Répartition des régimes alimentaires des oiseaux communs de Grand Lieu", 
-        xlab = "régime alimentaire", ylab = "Nombre d'espèces")
-barplot(table(HWI$Territoriality), main = "Classement des especes territoriales de Grand Lieu", 
-        xlab = "type de territorialité", ylab = "Nombre d'espèces")
+#Combien dans chaque categorie ? 
 table(HWI$migration_1)
-table(HWI$migration_2) 
-#1 = sédentaire 
-#2 = partiellement migrateur 
-#3 = totalement migrateur 
+table(HWI$migration_2) #1 = sedentaire ; 2 = partiellement migrateur ; 3 = totalement migrateur 
 table(HWI$migration_3)
 
+#Graphiques :
+barplot(table(HWI$Diet), main = "Repartition des regimes alimentaires des oiseaux communs de Grand Lieu", 
+        xlab = "regime alimentaire", ylab = "Nombre d'especes")
+barplot(table(HWI$Territoriality), main = "Classement des especes territoriales de Grand Lieu", 
+        xlab = "type de territorialite", ylab = "Nombre d'especes")
 barplot(table(HWI$migration_2), main = "repartition des especes migratrices sur gl")
 
 rm(scien_name, HWI_complet)#supprimer HWI_complet qui ne sert plus a rien 
@@ -269,7 +311,8 @@ meteo_y <-merge(meteo_y,rr_y_sum,all.x = T, by = "Date_y")
 
 library(data.table)
 DT_meteo <- meteo_gl#faire une copie du jdd
-setDT(DT_meteo)#a quoi ca sert deja ?
+setDT(DT_meteo)#lancer le jdd dans le "language" data frame
+
 
 dt_y_printemps <- DT_meteo[Date_m %in% c(4,5,6),.(RR_sum_spring = sum(RR,na.rm = TRUE), TM_spring = mean(TM,na.rm=TRUE)),by = Date_y]
 #ecriture particuliere de data.table qui permet de creer des moyennes avec des conditions 
@@ -280,14 +323,14 @@ meteo_y <-merge(meteo_y,dt_y_printemps, all.x = T, by = "Date_y")
 ###Creation de la variable "nombre de jours de gel dans l'hiver precedent" : 
 
 #Nouvelle variable qui corrige l'annee pour les mois de octo, nov, dec : 
-meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:3,10:12),
+meteo_gl$fin_hiver <- ifelse(meteo_gl$Date_m %in% c(1:4,10:12),
                              ifelse(meteo_gl$Date_m %in% c(1:4),
                                     meteo_gl$Date_y,meteo_gl$Date_y + 1), NA)
-#attention on prend avril en + !! 
+#Dans l'hiver sont compris les mois de octo, nov, dec, janv, fev, mars, avril  
 #Creation nouvel objet qui contient le nbre de jours de gel :
 gel <- aggregate(TM ~ fin_hiver,data = meteo_gl,
                  FUN = function(X) sum(as.numeric(X < 0)));colnames(gel) <-c("Date_y", "j_rude")
-#on lui dit de compter le nombre de fois ou les valeurs sont inf à 0 
+#on lui dit de compter le nombre de fois ou les valeurs sont inf a 0 
 
 #Inclure cette nouvelle variable dans le jdd : 
 meteo_y <-merge(meteo_y,gel, all.x = T, by = "Date_y")
@@ -309,17 +352,16 @@ library(dplyr)
 library(scales)
 
 
-
-#Graphique comparaison des temperatures annuelles et printanières 
+#Graphique comparaison des temperatures annuelles et printanieres 
 
 ggplot(meteo_y_etude, aes(x = Date_y)) +
-  geom_point(aes(y = TM, color = "Température annuelle")) +
-  geom_line(aes(y = TM, color = "Température annuelle")) +
+  geom_point(aes(y = TM, color = "Temperature annuelle")) +
+  geom_line(aes(y = TM, color = "Temperature annuelle")) +
   geom_point(aes(y = TM_spring, color = "Temperature du printemps")) +
   geom_line(aes(y = TM_spring, color = "Temperature du printemps")) +
   scale_color_manual(values = c("red", "Darkred")) +
   #scale_y_continuous(name = "TM",limits = c(min(meteo_y_etude$TM), max(meteo_y_etude$TM)))+
-  labs(x = "Année",y = "temperature (°C)", title = "Température moyenne annuelles et printanières du lac de Grand lieu entre 2000 et 2021")
+  labs(x = "Annee",y = "temperature (�C)", title = "Temperature moyenne annuelles et printanieres du lac de Grand lieu entre 2000 et 2021")
   #On a une sacre correlation entre les deux variables (logique)
 
 # Graphique comparaison des variables de precipitations 
@@ -331,24 +373,24 @@ ggplot(meteo_y_etude, aes(x = Date_y)) +
   geom_line(aes(y = RR_sum, color = "somme")) +
   scale_color_manual(values = c("blue", "Darkblue")) +
   #scale_y_continuous(name = "TM",limits = c(min(meteo_y_etude$TM), max(meteo_y_etude$TM)))+
-  labs(x = "Année",y = "RR", title = "Precipitations moyenne annuelles et printanières du lac de Grand lieu entre 2000 et 2021")
+  labs(x = "Annee",y = "RR", title = "Precipitations moyenne annuelles et printanières du lac de Grand lieu entre 2000 et 2021")
 
 
 ggplot(meteo_y_etude, aes(x = Date_y)) +
   geom_point(aes(y = RR, color = "RR jour")) +
   geom_line(aes(y = RR, color = "RR jour")) +
-  labs(x = "Année",y = "Précipitations (mm)",title = "Precipitations moyenne par jour du lac de Grand lieu entre 2000 et 2021")
+  labs(x = "Annee",y = "Precipitations (mm)",title = "Precipitations moyenne par jour du lac de Grand lieu entre 2000 et 2021")
 #pas tres pertinent je pense cette variable... 
 #j'aimerai que les courbes de variations se superposent
-#( chacune dans leur gamme de variation respective) afin de pouvoir les comparer.
-#Une variable est en nombre de jours de gel ( entre 0 et 20)
-#et l'autre variable est une moyenne des températures qui tourne autour de 15 degres. comment faire ?
+#(chacune dans leur gamme de variation respective) afin de pouvoir les comparer.
+#Une variable est en nombre de jours de gel (entre 0 et 20)
+#et l'autre variable est une moyenne des temperatures qui tourne autour de 15 degres. comment faire ?
 
 
 #Graphique :
 #Des ptits graphiques pour visualiser un peu de tout... 
 plot(dt_y_printemps$RR_sum_spring ~ dt_y_printemps$Date_y, type = "b",
-     main = "Variation des précipitations du printemps en fonction des ans",
+     main = "Variation des precipitations du printemps en fonction des ans",
      xlab = "Annees", ylab = "Precipitations(mm)")
 
 plot(dt_y_printemps$TM_spring ~ dt_y_printemps$Date_y, type = "b",
@@ -393,7 +435,7 @@ n_eau_complet$mois <- as.numeric(n_eau_complet$mois)
 n_eau_complet$jour <- as.numeric(n_eau_complet$jour)
 n_eau_complet$annee <- as.numeric(as.character(n_eau_complet$annee))#passer en character puis en numeric 
 #creation du jdd des niveaux d'eaux final --> printemps 2000/2022
-n_eau<- subset(n_eau_complet, annee >=2000)# garder les annees sup ou egal à 2000 
+n_eau<- subset(n_eau_complet, annee >=2000)# garder les annees sup ou egal a 2000 
 n_eau<- subset(n_eau, mois == "4" | mois == "5" | mois == "6" | mois == "7")#garder les mois de spring
 summary(n_eau) # ; View(n_eau)
 
@@ -405,11 +447,11 @@ head(n_eau)
 
 #On a le jdd n_eau propre, avec la hauteur pour chaque jour
 #Sauf que nous, on a besoin d'une seule valeur par an dans notre PE_info 
-#On crée donc un indice de crue, 1 annee = 1 valeur
+#On cree donc un indice de crue, 1 annee = 1 valeur
 
 ###Creation de l'indice de crue : 
 
-## mauvaise idée de standardisation :-(
+## mauvaise idee de standardisation :-(
 # require(data.table)
 # setDT(n_eau)
 # n_eau[,hauteur_y_med := median(hauteur),by=annee]
@@ -430,7 +472,7 @@ setDT(n_eau_decal)
 #augmentation du niveau d'eau durant le printemps 
 #--> Faire une variable "difference" niveau d'eau = ne(n) - ne(n-1) 
 
-#Création des nouvelles variables : 
+#Creation des nouvelles variables : 
 
 #Variation sur 24h : diff_jj1 = hauteur(jj) - hauteur(jj_1) 
 n_eau_decal[,jj_1:= jj]#jj_1 prend la valeur de jj
@@ -460,7 +502,7 @@ setnames(n_eau_decal,"hauteur_j2","hauteur_j3")
 n_eau2 <- merge(n_eau2,n_eau_decal,by = c("jj","annee"),all.x = TRUE)
 n_eau2
 
-#Création de la variable diff_jn, la difference de hauteur : 
+#Creation de la variable diff_jn, la difference de hauteur : 
 n_eau2[,`:=`(diff_j1 = hauteur - hauteur_j1,#Rappel jj_2 est 2 jours avant jj
              diff_j2 = hauteur - hauteur_j2,
              diff_j3 = hauteur - hauteur_j3)]
@@ -473,13 +515,13 @@ n_eau2[,`:=`(diff_j1 = ifelse(diff_j1 <0 ,0, diff_j1),
 n_eau2[,`:=`(seuil_j1 = hauteur > 1.85 & hauteur_j1 < 1.95 & diff_j1 > 0,
              seuil_j2 = hauteur > 1.85 & hauteur_j2 < 1.95 & diff_j2 > 0,
              seuil_j3 = hauteur > 1.85 & hauteur_j3< 1.95 & diff_j3 > 0)]
-
+# est-ce qu'on augmente 0 � 0.05 pour ne pas avoir les toutes petites augmentations ? 
 # Faire le tableau recap :
 med_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, median) #Hauteur mediane par printemps 
 colnames(med_spring)[2] <- "mediane"
 mean_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, mean)#Moyenne par printemps
 colnames(mean_spring)[2] <- "moyenne"
-sd_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, sd)#ecart type associé
+sd_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, sd)#ecart type associe
 colnames(sd_spring)[2] <- "sd"
 min_spring <- aggregate(n_eau$hauteur ~ n_eau$annee, data = n_eau, min)# hauteur min du printemps
 colnames(min_spring)[2] <- "min_hauteur"
@@ -499,9 +541,9 @@ diff_max_true <- aggregate(n_eau2$diff_j3 ~ n_eau2$annee + seuil_j3, data = n_ea
 diff_max_true <- subset(diff_max_true, seuil_j3 == "TRUE")
 diff_max_true <- subset(diff_max_true, select = -c(seuil_j3)) 
 colnames(diff_max_true)[2] <- "diff_max_true"
-#On fusionne tout ça maintenant : 
-table_niveau_eau <- merge(mean_spring,med_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
-table_niveau_eau <- merge(table_niveau_eau,sd_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
+#On fusionne tout ca maintenant : 
+table_niveau_eau <- merge(mean_spring,sd_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
+table_niveau_eau <- merge(table_niveau_eau,med_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
 table_niveau_eau <- merge(table_niveau_eau,min_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
 table_niveau_eau <- merge(table_niveau_eau,max_spring, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau$annee")
 table_niveau_eau <- merge(table_niveau_eau,diff_j3_max, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau2$annee")
@@ -511,17 +553,8 @@ table_niveau_eau <- merge(table_niveau_eau,haut_max_true, all.x = TRUE, by.x = "
 table_niveau_eau <- merge(table_niveau_eau,diff_max_true, all.x = TRUE, by.x = "n_eau$annee", by.y = "n_eau2$annee")
 
 
-# creer table hauteur/annee : 
-# année / hauteur mediane de l'annee / ecart type de l'annee / min(niveau d'eau) / max(niveau d'eau) / diff max
-# la colonne crue seuil (TRUE/FALSE) / Nbre de jours avec TRUE / Hauteur max pour les TRUE / Diff max pour les TRUE  / hauteur d'eau au diff max 
-# pour crue seuil, faire any de la colonne seuil pour savoir s'il y a un true dans l'année 
-
-#documentation avec structuration du jeu de données 
-#d'ou vient les données, explication etc 
-
 
 #Graphiques : 
-
 
 #Exemple de crue 2001 -2002: 
 n_eau_2001 <- subset(n_eau, annee == 2001)
@@ -533,7 +566,7 @@ ggplot() +
   #scale_color_manual(values = c("blue", "red")) +
   #scale_y_continuous(name = "TM",limits = c(min(n_eau$TM), max(n_eau$TM)))+
   labs(x = "Date",y = "Hauteur(m)",
-       title = "Hauteur du niveau d'eau de Grand lieu", color = "Légende :") +
+       title = "Hauteur du niveau d'eau de Grand lieu", color = "Legende :") +
   theme_bw() 
 #la fonction theme() permet de changer l'apparence du graphique, avec size pour la police en encore family 
 
@@ -559,7 +592,6 @@ ggplot(n_eau, aes(x = date, y = hauteur, group = as.factor(annee), color = as.fa
   scale_color_manual(values = rev(rainbow(length(unique(n_eau$annee))))) +
   theme_bw()
 
-
 #Courbes avec seuil de 1.90  
 ggplot(n_eau2, aes(x = date, y = hauteur, group = as.factor(annee),colour = diff_j1)) +
   geom_line() +geom_point(data=subset(n_eau2,diff_j1 > 0),size=0.5)+geom_point(data=subset(n_eau2,seuil_j1),size=1.1,colour = "red")+facet_wrap(.~annee,scales = "free_y")
@@ -574,12 +606,12 @@ plots_list <- list()
 
 # Boucle pour creer un graphique pour chaque annee
 for (i in 2016:2022) { #pour tous les ans : max(n_eau$annee)
-  data_year <- n_eau[n_eau$annee == i,]# filtrer les données pour l'année i
-  # Créer le graphique pour l'année i
+  data_year <- n_eau[n_eau$annee == i,]# filtrer les donnees pour l'annee i
+  # Creer le graphique pour l'annee i
   graph <- ggplot(data_year, aes(x = date, y = hauteur)) +
     geom_line(color = "blue") +
     labs(x = "Date", y = "Hauteur(m)", title = paste("Niveau d'eau en", i))
-  # Ajouter le graphique à la liste
+  # Ajouter le graphique a la liste
   plots_list[[i-2015]] <- graph
 }
 
@@ -600,61 +632,32 @@ info_especes <- merge(code_crbpo,info_esp, all.x = TRUE, by = "ESPECE")
 info_especes <- merge(info_especes,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
 prov <- merge(code_crbpo,geb, all.x = TRUE,  by.x = "ESPECE", by.y = "code")#fusion des deux jdd
 #ici, le merge me fait 2 lignes en double et je ne comprends pas pourquoi
-#il s'agit des lignes 29 et 81 (corneille noire et marouette de baillon )
-prov <- prov[-c(29,81),]# je sais ce nest pas bien, mais je ne comprends pas... 
+#il s'agit des lignes 29 et 81 (corneille noire et marouette de baillon)
+prov <- prov[-c(29,81),]# je sais ce nest pas bien, mais je ne comprends pas...
+#ou enlever les doublons ? 
 info_especes<- merge(info_especes,prov, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
 info_especes <- merge(info_especes,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
 
 info_especes <- subset(info_especes, select = - c(NOM_FR_BIRD.y, pk_species, niveau_taxo,class_tax,
                                                   scientific_name.y, scientific_name_2.y, Synonym, Notes))
-
-                                                  
-#voir pourquoi NA sur le verdier d'europe ?                                                   
-                                                  
-#Selectionner les colonnes que l'on veut :
-# # info_especes <- subset(info_especes, select = c(, order_tax, family_tax, e.bodymass.g.,
-#                                       e.seeds.nuts.grain, e.fruits.frugivory,
-#                                       e.vegitative, e.invert, e.fish, ssi, sti_europe,
-#                                       stri,Territoriality, Diet, migration_1,
-#                                       migration_2, migration_3))
-
-
-
-
-
-# PE_info <- merge(PE,info_esp, all.x = TRUE, by = "ESPECE")
-# #PE_info <- PE_info[,-c(6:17)]#pour ne garder que les colonnes qui m interesse
-# #/!\ Attention /!\ 
-# #saisi des codes crbpo diff entre les jdd 
-# #il faut verifier que tous les codes soient les memes :
-# unique(subset(PE_info, is.na(family_tax), select = "ESPECE"))#recherche des mauvais code espece 
-# # si egal a 0 alors c est ok 
-# 
-# #Remplir PE_info avec tous les jdd 
-# PE_info <- merge(PE_info,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
-# PE_info <- merge(PE_info,geb, all.x = TRUE, by.x = "ESPECE", by.y = "code")#fusion des deux jdd 
-# PE_info <- merge(PE_info,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd 
-# PE_info <- merge(PE_info,meteo_y_etude, all.x = TRUE, by.x = "ANNEE", by.y = "Date_y")#fusion des deux jdd 
-# 
-# #Selectionner les colonnes que l'on veut : 
-# PE_info <- subset(PE_info, select = c(ESPECE, NOM_FR_BIRD.x, ANNEE, SITE, ABONDANCE,
-#                                       type, order_tax, family_tax, e.bodymass.g.,
-#                                       e.seeds.nuts.grain, e.fruits.frugivory,
-#                                       e.vegitative, e.invert, e.fish, ssi, sti_europe,
-#                                       stri,Territoriality, Diet, migration_1, 
-#                                       migration_2, migration_3))
 # PE_info$SITE <- gsub("[����]", "e", PE_info$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux 
 # PE_info$SITE <- gsub("[��]", "a", PE_info$SITE, ignore.case = TRUE)
-# colnames(PE_info)[1] <- "CODE"
-# colnames(PE_info[2]) <- "NOM_FR_BIRD"
-# setnames(PE_info,"type","TYPE")
-# setna
+# changer nom des colonnes 
+#voir pourquoi NA sur le verdier d'europe ?                                                   
+     
 
-#changer le nom des colonnes 
 
+
+#####################"
+#
+#
 ############## 4 - ANALYSES DESCRIPTIVES #######
+#
+#
+#####################"
 
-#Indices de diversit� ?
+
+#Indices de diversite ?
 
 #POUR LA DESCRIPTION JE CREE UN JDD SANS LES 0 
 PE_obs<-subset(PE, ABONDANCE != 0 )
@@ -678,10 +681,6 @@ mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
 #variance +++ a cause des quelques valeurs tres hautes ? 
 
 
-
-
-
-
 ####### b - Variable SITE : les points d ecoutes #######
 
 #exploration de base : 
@@ -697,13 +696,13 @@ colnames(AB_site)[2] <- "nb_bird"#renomme variable ABONDANCE
 #Graphique : 
 barplot(AB_site$nb_bird, names.arg = AB_site$SITE, xlab = "Site", ylab = "Nombre d'oiseaux", main = "Nombre d'oiseaux par site")
 
-#Richesse specifique par site, toute année confondu : 
+#Richesse specifique par site, toute annee confondu : 
 RS_site<- aggregate(ESPECE ~ SITE, data = PE_obs, FUN = function(x) length(unique(x)))
 colnames(RS_site)[2] <- "RS"
 #representation graphique 
 par(las=2)#fonction qui permet d'orienter les noms des axes
 barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site",
-        ylab = "Nombre d'espèces", main = "Richesse spécifique par site", cex.names = 0.5)
+        ylab = "Nombre d'especes", main = "Richesse specifique par site", cex.names = 0.5)
 
 
 
@@ -715,10 +714,10 @@ summary(PE$ANNEE)
 max(PE$ANNEE)-min(PE$ANNEE)#Le nombre d annees de suivi est de
 table(PE_obs$ANNEE) #le nombre total d'obs par annee est de 
 plot(table(PE_obs$ANNEE), main = "Nombre d'observations d'oiseaux par an ",
-     xlab = "Année", ylab = "obs d'oiseaux")
+     xlab = "Annee", ylab = "obs d'oiseaux")
 #faire un truc + beau apres 
 
-#Quantité d'oiseaux au cours du temps 
+#Quantite d'oiseaux au cours du temps 
 AB_year <- aggregate(ABONDANCE ~ ANNEE, data = PE_obs, FUN = function(x) length(unique(x)))
 colnames(AB_year)[2] <- "nb_bird"
 AB_lm <- lm(nb_bird~ANNEE, data = AB_year)#la quantite d oiseaux n a pas l air de changer 
@@ -726,11 +725,11 @@ AB_lm <- lm(nb_bird~ANNEE, data = AB_year)#la quantite d oiseaux n a pas l air d
 summary(AB_lm)
 #graphique 
 par(las = 2) #las = 2 permet d'incliner a 90 les axes
-barplot(AB_year$nb_bird, names.arg = AB_year$ANNEE, xlab = "Année", 
-        ylab = "Quantité d'oiseaux", main = "Nombre d'oiseaux par année", cex.names = 0.8)
+barplot(AB_year$nb_bird, names.arg = AB_year$ANNEE, xlab = "Annee", 
+        ylab = "Quantite d'oiseaux", main = "Nombre d'oiseaux par annee", cex.names = 0.8)
 
 
-# Richesse spécifique par année, tout site confondu : 
+# Richesse specifique par annee, tout site confondu : 
 RS_year <- aggregate(ESPECE ~ ANNEE, data = PE_obs, FUN = function(x) length(unique(x)))
 colnames(RS_year)[2] <- "RS"
 RS_lm <- lm(RS~ANNEE, data = RS_year)
@@ -738,7 +737,7 @@ summary(RS_lm)# on tend vers une baisse de la RS, quasi-significatif
 # Graphique :
 par(las = 2) #las = 2 permet d'incliner a 90 les axes
 barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et année", 
-        ylab = "Nombre d'espèces", main = "Nombre d'espèces d'oiseaux par année", cex.names = 0.8)
+        ylab = "Nombre d'especes", main = "Nombre d'espèces d'oiseaux par année", cex.names = 0.8)
 
 # Ajout de la ligne de tendance 
 #abline(RS_lm, col = "red")
@@ -758,7 +757,7 @@ length(unique(PE$ESPECE)) #est le nombre d espece vu dans ce protocole, toutes a
 table(PE_obs$NOM_FR_BIRD)#le nombre de fois ou chaque esp a ete vu, toutes annees confondue 
 
 unefois <- data.frame(table(PE_obs$NOM_FR_BIRD) == 1)#extraire ceux present qu'une fois 
-table(unefois) #Dans ce jeu de données, 9 especes ont ete vu 1 fois, et 90 plusieurs fois
+table(unefois) #Dans ce jeu de donnees, 9 especes ont ete vu 1 fois, et 90 plusieurs fois
 centfois <- data.frame(table(PE_obs$NOM_FR_BIRD) <= 100)#extraire ceux present + de cent fois 
 table(centfois) # 42 especes ont ete vu - de cent fois 
 
@@ -770,7 +769,7 @@ pie(table(PE_obs$NOM_FR_BIRD))#le camembert pas très lisible mais permet tout d
 tail(sort(table(PE_obs$NOM_FR_BIRD)),10)#me donne les 10 + grandes valeurs 
 pie(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))#camembert des 10 + presents
 barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))
-#Pour l'année 2002, nous avons : 
+#Pour l'annee 2002, nous avons : 
 table(PE_obs$NOM_FR_BIRD[PE_obs$ANNEE == "2002"])
 length(unique(PE_obs$ESPECE[PE_obs$ANNEE==2002])) #RS en 2002 est :
 
@@ -784,8 +783,8 @@ summary(ES_PE) #50% des esp st presentes sur 44 sites #cela varie au cours du te
 
 # Graphique :
 par(las = 2) #las = 2 permet d'incliner a 90 les axes
-barplot(ES_PE$nb_PE, names.arg = ES_PE$ESPECE, xlab = "Nom des espèces", 
-        ylab = "Nombre de points d'écoutes", main = "Nombre de sites fréquenté par espèce", 
+barplot(ES_PE$nb_PE, names.arg = ES_PE$ESPECE, xlab = "Nom des especes", 
+        ylab = "Nombre de points d'ecoutes", main = "Nombre de sites frequente par espece", 
         cex.names = 0.3)#graphique en baton #cex.names pour la taille # names.arg pour def les noms  pour chaque barre 
 abline(h = median(ES_PE$nb_PE), col = "darkred", lty = 2)# Ajout de la ligne de tendance 
 #h pour horizontale, lty = 2 pour les pointilles 
@@ -854,20 +853,37 @@ barplot(fish, main="mangeurs de poissons",
 ####### g - Le poids des oiseaux #######
 
 
-#Poids des espèces (pas tres pertinent)
+#Poids des especes (pas tres pertinent)
 geb_ss<-geb_ss[order(geb_ss$e.bodymass.g.),]
 par(las = 2)
-barplot(geb_ss$e.bodymass.g., main="Poids des espèces d'oiseaux de grand lieu",
+barplot(geb_ss$e.bodymass.g., main="Poids des especes d'oiseaux de grand lieu",
         xlab="espece", ylab="masse",names.arg = geb_ss$code,
         col=c("blue", "red"), cex.names = 0.5)
 
+####### h - Les habitats #######
 
-##### PE_info : la création 
+pod_site$Habitat_1 <- as.factor(pod_site$Habitat_1)
+table(pod_site$Habitat_1)
+barplot(table(pod_site$Habitat_1))
+
+pod_site$Habitat_2 <- as.factor(pod_site$Habitat_2)
+table(pod_site$Habitat_2)
+barplot(table(pod_site$Habitat_2))
+
+pod_site$Habitat_3 <- as.factor(pod_site$Habitat_3)
+table(pod_site$Habitat_3)
+barplot(table(pod_site$Habitat_3))
+
+barplot(pod_site$Derangement)
 
 
-
-
+#####################"
+#
+#
 ########### 5 - EXPORTER LE JDD FINAL #######
+#
+#
+#####################"
 
 #write.csv ou write.xlsx avec package openxlsx
 
