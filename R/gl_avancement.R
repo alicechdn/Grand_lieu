@@ -97,7 +97,7 @@ pod_site <- merge(pod_site,PE_SITE_INS, all.x = TRUE, by = "Site")
 
 #Fusionner les colonnes ensemble 
 pod_site$protec <- paste0(ifelse(is.na(pod_site$ID_LOCAL), "", "RNR"),#paste0 pour concatener et mettre en character
-                          ifelse(is.na(pod_site$SITECODE), "", "site classe"),
+                          ifelse(is.na(pod_site$SITECODE), "", "site classe"),#on ne garde pas ZPS
                           ifelse(is.na(pod_site$Nom), "", "RNN"), 
                           ifelse(is.na(pod_site$id_regiona), "", "site classe"),
                           ifelse(is.na(pod_site$id_entite), "", "site inscrit"))
@@ -147,10 +147,39 @@ hab_name <- merge(hab_name, c_derangement, all.x = TRUE, by.x = "Derangement", b
 
 hab_name <- subset(hab_name, select = c(Site, ZSC, habitat_1_n, habitat_2_n, habitat_3_n, ZI_n, route, derangement))
 
+
+plot(table(hab$Habitat_1))
+plot(table(hab$Habitat_2))
+
+plot(table(hab$Habitat_3))
 #est-ce qu'on fait un merge avec les codes numeros, ou directement les noms ? 
 #pod_site <- merge(pod_site, hab, all.x = TRUE, by = "Site")
+#comment faire pour prendre en compte tous les habitats, faire les 4 categories d'habitats 
+#regroupement roselieres/urbain/foret/culture
+#prendre 
+#faire les changement habitat + stat descriptives 
+
 rm(c_derangement, c_hab, c_route, c_ZI)
 
+#Changer le jdd habitat pour le simplifier 
+hab$roseliere <- ifelse(hab$Habitat_1 %in% c(1:5), 1, 
+                         ifelse(hab$Habitat_2 %in% c(1:5), 1,
+                                ifelse(hab$Habitat_3 %in% c(1:5), 1, NA)))
+
+hab$agricole <- ifelse(hab$Habitat_1 %in% c(6:7,9:12), 1, 
+                        ifelse(hab$Habitat_2 %in% c(6:7,9:12), 1,
+                               ifelse(hab$Habitat_3 %in% c(6:7,9:12), 1, NA)))
+hab$forestier <- ifelse(hab$Habitat_1 %in% c(8), 1, 
+                       ifelse(hab$Habitat_2 %in% c(8), 1,
+                              ifelse(hab$Habitat_3 %in% c(8), 1, NA)))
+
+hab$urbain <- ifelse(hab$Habitat_1 %in% c(14:17), 1, 
+                        ifelse(hab$Habitat_2 %in% c(14:17), 1,
+                               ifelse(hab$Habitat_3 %in% c(14:17), 1, NA)))
+hab_new <- subset(hab, select = - c(Habitat_1,Habitat_2,Habitat_3))
+
+
+              
 ####### b - Les noms vernaculaires des oiseaux : code_crbpo #####
 
 
@@ -158,6 +187,7 @@ rm(c_derangement, c_hab, c_route, c_ZI)
 library(readxl)
 code_crbpo <- read_excel("C:/git/Grand_lieu/DATA/noms_vernaculaires.xlsx", col_names = FALSE)#chargement du jdd 
 colnames(code_crbpo) <- c("ESPECE", "NOM_FR_BIRD")#nom des variables dans la matrice
+code_crbpo$NOM_FR_BIRD <- ifelse(code_crbpo$NOM_FR_BIRD == "Marouette de Baillon" , "Marouette ponctuee" , code_crbpo$NOM_FR_BIRD)#corriger le code de marouette 
 #View(code_crbpo)#visualisation du jdd
 dim(PE)
 #jonction du jdd principal avec code_crbpo pour avoir les noms vernaculaires dans le jdd 
@@ -219,7 +249,12 @@ rm(info_esp_complet)#supprimer info_esp_complet qui ne sert plus a rien
 geb <- read.csv2("C:/git/Grand_lieu/DATA/geb12127-sup-0002-ap.csv",skip = 6)# skip pour sauter les premieres lignes 
 geb$code <- casefold(geb$code, upper=T)#permet de tout mettre en majuscule (pour merge apres)
 #/!\ CODE CRBPO A CORRIGER /// meme oiseau == autre nom 
-geb$code_crbpo <- ifelse(geb$code == "LANSEN" , "LANSER" , geb$code) # maj des codes crbpo
+geb$code <- ifelse(geb$code == "LANSEN" , "LANSER" , geb$code)
+geb$code <- ifelse(geb$code == "CHLCHL" , "CARCHL" , geb$code)# maj des codes crbpo
+geb <- subset(geb,sp.names != "Corvus_corax" )#suppr des esp qui ont le meme code 
+geb <- subset(geb,sp.names != "Porphyrio_porphyrio")
+#!= --> different de 
+#pas la meilleure solution, il faudrait changer le code CRBPO du mauvais ? 
 #expl de la fontion : SI (...condition... , ALORS ... , SINON ...)
 #geb <- geb[,c(2:3)]#enlever les colonnes non desirees
 summary(geb)
@@ -395,7 +430,7 @@ plot(dt_y_printemps$RR_sum_spring ~ dt_y_printemps$Date_y, type = "b",
 
 plot(dt_y_printemps$TM_spring ~ dt_y_printemps$Date_y, type = "b",
      main = "Variation des temperatures du printemps en fonction des ans",
-     xlab = "Annees", ylab = "Temperature (Â°C)")
+     xlab = "Annees", ylab = "Temperature (°C)")
 #flagrant l'augmentation des temperatures...
 
 plot(meteo_y_etude$j_rude~ meteo_y_etude$Date_y,
@@ -403,7 +438,8 @@ plot(meteo_y_etude$j_rude~ meteo_y_etude$Date_y,
      xlab = "Annee", ylab = "Nb de jours")
 
 #pour supprimer un objet : rm(nom_objet) #pour remove
-rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y, meteo_gl, meteo_y)
+rm(DT_meteo, dt_y_printemps, gel, rr_y, rr_y_sum, tm_y, meteo_gl, meteo_y,
+   min_spring, max_spring,mean_spring,med_spring, sd_spring)
 
 
 
@@ -620,7 +656,8 @@ grid.arrange(grobs = plots_list, ncol = 4)#grobs pour afficher une liste
 #ncol pour le nbre de colonnes 
 #on voit des crues en 2001, 2007, 2008?, 2012, 2013, 2015++, 
 
-#rm(n_eau_prov, Date, niv_eau)#supprimer les jdd intermediaires
+rm(n_eau_prov, Date, niv_eau, n_eau_2001, n_eau_2002, n_eau_2014, n_eau_2015,
+   crue_seuil,diff_j3_max, diff_max_true, haut_max_true, data_year, somme_seuil)#supprimer les jdd intermediaires
 
 
 
@@ -630,12 +667,7 @@ info_especes <- merge(code_crbpo,info_esp, all.x = TRUE, by = "ESPECE")
  
 #Remplir PE_info avec tous les jdd 
 info_especes <- merge(info_especes,ind_fonction, all.x = TRUE, by.x = "ESPECE", by.y = "pk_species")
-prov <- merge(code_crbpo,geb, all.x = TRUE,  by.x = "ESPECE", by.y = "code")#fusion des deux jdd
-#ici, le merge me fait 2 lignes en double et je ne comprends pas pourquoi
-#il s'agit des lignes 29 et 81 (corneille noire et marouette de baillon)
-prov <- prov[-c(29,81),]# je sais ce nest pas bien, mais je ne comprends pas...
-#ou enlever les doublons ? 
-info_especes<- merge(info_especes,prov, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
+info_especes <- merge(info_especes,geb, all.x = TRUE,  by.x = "ESPECE", by.y = "code")#fusion des deux jdd
 info_especes <- merge(info_especes,HWI, all.x = TRUE, by = "ESPECE")#fusion des deux jdd
 
 info_especes <- subset(info_especes, select = - c(NOM_FR_BIRD.y, pk_species, niveau_taxo,class_tax,
@@ -643,11 +675,13 @@ info_especes <- subset(info_especes, select = - c(NOM_FR_BIRD.y, pk_species, niv
 # PE_info$SITE <- gsub("[éèêë]", "e", PE_info$SITE, ignore.case = TRUE)#Mettre entre crochets tous les caracteres speciaux 
 # PE_info$SITE <- gsub("[àâ]", "a", PE_info$SITE, ignore.case = TRUE)
 # changer nom des colonnes 
-#voir pourquoi NA sur le verdier d'europe ?                                                   
      
+library(data.table)
+setnames(info_especes,"NOM_FR_BIRD.x","NOM_FR_BIRD")
+setnames(info_especes,"scientific.name.x","scientific.name")
+setnames(info_especes,"scientific.name_2.x","scientific.name_2")
 
-
-
+#faudrait supprimer tree name et Species-ID 
 #####################"
 #
 #
