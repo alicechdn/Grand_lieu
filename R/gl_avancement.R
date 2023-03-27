@@ -178,6 +178,7 @@ hab$urbain <- ifelse(hab$Habitat_1 %in% c(14:17), 1,
                                ifelse(hab$Habitat_3 %in% c(14:17), 1, NA)))
 hab_new <- subset(hab, select = - c(Habitat_1,Habitat_2,Habitat_3))
 
+pod_site <- merge(pod_site, hab_new, by = "Site")
 
               
 ####### b - Les noms vernaculaires des oiseaux : code_crbpo #####
