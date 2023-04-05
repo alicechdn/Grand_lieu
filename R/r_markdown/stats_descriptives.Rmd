@@ -1,0 +1,160 @@
+---
+title: "STATISTIQUES DESCRIPTIVES"
+author: "Alice"
+date: "03/04/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Statistiques descriptives
+
+Pour effectuer les statistiques descriptives, je crée un jeu de données sans les données d'absence (ABONDANCE = 0).
+
+```{r PE_obs}
+library(readxl)
+PE <- read_excel("C:/git/Grand_lieu/DATA/PE.xlsx",
+                  col_names = TRUE) 
+library(data.table)
+setnames(PE,"ESPECE","CODE")
+
+PE_obs<-subset(PE, ABONDANCE != 0 )
+```
+
+### a - Variable réponse : ABONDANCE
+
+```{r ABONDANCE}
+plot(PE_obs$ABONDANCE)
+hist(PE_obs$ABONDANCE) #bcp bcp de petites valeurs#att valeurs extremes
+summary(PE$ABONDANCE)
+summary(PE_obs$ABONDANCE)#+ de 50% des valeurs sont des 1 ; max a 700 indiv
+table(PE_obs$ABONDANCE)
+table(PE$ABONDANCE)
+table(PE$ABONDANCE >= 1)
+table(PE$ABONDANCE >=1)[2]/length(PE$ABONDANCE)*100 #pour differencier le 0 des autres 
+
+mean(PE_obs$ABONDANCE); sd((PE_obs$ABONDANCE)) ; var(PE_obs$ABONDANCE)
+#variance +++ a cause des quelques valeurs tres hautes ? 
+
+#autre methode 
+occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x >0))
+occ_esp
+
+occ_esp_10 <- head(sort(occ_esp, decreasing = TRUE), n = 10)
+occ_esp_10
+par(las = 2)
+barplot(occ_esp_10)
+pie(occ_esp)
+```
+
+### b - Variable points d'écoute : SITE
+
+```{r}
+#exploration de base : 
+length(unique(PE$SITE)) #le nombre de points d ecoute (119) 
+summary(PE$SITE)#pas grand interet ? 
+table(PE$SITE)# pas grand interet ?
+table(PE_obs$SITE)#nombre d observation par site 
+hist(table(PE_obs$SITE))
+
+#Nombre d'oiseaux (en abondance (donc pas tres pertinent?)) par site :
+AB_site <- aggregate(ABONDANCE ~ SITE, data = PE_obs, FUN = sum)#fonction aggregate pour fusionner des infos ensemble 
+colnames(AB_site)[2] <- "nb_bird"#renomme variable ABONDANCE
+#Graphique : 
+barplot(AB_site$nb_bird, names.arg = AB_site$SITE, xlab = "Site", ylab = "Nombre d'oiseaux", main = "Nombre d'oiseaux par site")
+ 
+
+#Richesse specifique par site, toute annee confondu : 
+RS_site<- aggregate(CODE ~ SITE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(RS_site)[2] <- "RS"
+#representation graphique 
+par(las=2)#fonction qui permet d'orienter les noms des axes
+barplot(RS_site$RS, names.arg = RS_site$SITE, xlab = "Site",
+        ylab = "Nombre d'especes", main = "Richesse specifique par site", cex.names = 0.5)
+```
+
+### c - Variable de temps : ANNEE
+
+```{r}
+summary(PE$ANNEE)
+max(PE$ANNEE)-min(PE$ANNEE)#Le nombre d annees de suivi est de
+table(PE_obs$ANNEE) #le nombre total d'obs par annee est de 
+plot(table(PE_obs$ANNEE), main = "Nombre d'observations d'oiseaux par an ",
+     xlab = "Annee", ylab = "obs d'oiseaux")
+#faire un truc + beau apres 
+
+#Quantite d'oiseaux au cours du temps 
+AB_year <- aggregate(ABONDANCE ~ ANNEE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(AB_year)[2] <- "nb_bird"
+AB_lm <- lm(nb_bird~ANNEE, data = AB_year)#la quantite d oiseaux n a pas l air de changer 
+#resultat a prendre avec des pincettes car comptage particulier 
+summary(AB_lm)
+#graphique 
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(AB_year$nb_bird, names.arg = AB_year$ANNEE, xlab = "Annee", 
+        ylab = "Quantite d'oiseaux", main = "Nombre d'oiseaux par annee", cex.names = 0.8)
+
+
+# Richesse specifique par annee, tout site confondu : 
+RS_year <- aggregate(CODE ~ ANNEE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(RS_year)[2] <- "RS"
+RS_lm <- lm(RS~ANNEE, data = RS_year)
+summary(RS_lm)# on tend vers une baisse de la RS, quasi-significatif
+# Graphique :
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(RS_year$RS, names.arg = RS_year$ANNEE, xlab = "Site et annÃ©e", 
+        ylab = "Nombre d'especes", main = "Nombre d'espÃ¨ces d'oiseaux par annÃ©e", cex.names = 0.8)
+
+# Ajout de la ligne de tendance 
+#abline(RS_lm, col = "red")
+#lines(loess(RS_year$RS ~ RS_year$ANNEE), col = "red")
+#mean_by_year <- tapply(RS_year$RS, RS_year$ANNEE, mean)
+#lines(names(mean_by_year), mean_by_year, type = "l", col = "red")
+#rien ne fonctionne ?! 
+#faire sur un plot, pas de barplot
+#tenter ggplot 
+```
+
+### d - Variable des espèces : CODE
+
+```{r}
+#Stats de base :
+length(unique(PE$CODE)) #est le nombre d espece vu dans ce protocole, toutes annees confondues 
+table(PE_obs$NOM_FR_BIRD)#le nombre de fois ou chaque esp a ete vu, toutes annees confondue 
+
+unefois <- data.frame(table(PE_obs$NOM_FR_BIRD) == 1)#extraire ceux present qu'une fois 
+table(unefois) #Dans ce jeu de donnees, 9 especes ont ete vu 1 fois, et 90 plusieurs fois
+centfois <- data.frame(table(PE_obs$NOM_FR_BIRD) <= 100)#extraire ceux present + de cent fois 
+table(centfois) # 42 especes ont ete vu - de cent fois 
+
+barplot(table(PE_obs$NOM_FR_BIRD))#visualisation de la ligne d'au dessus 
+barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),length(unique(PE$CODE)) )) #meme chose avec les espÃ¨ce dans l'ordre d'obs
+pie(table(PE_obs$NOM_FR_BIRD))#le camembert pas tres lisible mais permet tout de meme de visualiser quelques especes tres presente
+#Quelques explorations par curiosite : 
+#LES 10 + VU
+tail(sort(table(PE_obs$NOM_FR_BIRD)),10)#me donne les 10 + grandes valeurs 
+pie(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))#camembert des 10 + presents
+barplot(tail(sort(table(PE_obs$NOM_FR_BIRD)),10))
+#Pour l'annee 2002, nous avons : 
+table(PE_obs$NOM_FR_BIRD[PE_obs$ANNEE == "2002"])
+length(unique(PE_obs$CODE[PE_obs$ANNEE==2002])) #RS en 2002 est :
+
+# Sur combien de point d ecoute sont present chaque espece, toute annee confondu : 
+ES_PE <- aggregate(SITE~ CODE, data = PE_obs, FUN = function(x) length(unique(x)))
+colnames(ES_PE)[2] <- "nb_PE"
+ES_PE <- ES_PE[order(ES_PE$nb_PE),]#fonction order pour trier dans l'ordre croissant 
+
+mean(ES_PE$nb_PE) ; sd(ES_PE$nb_PE) ; var(ES_PE$nb_PE)
+summary(ES_PE) #50% des esp st presentes sur 44 sites #cela varie au cours du temps ?
+
+# Graphique :
+par(las = 2) #las = 2 permet d'incliner a 90 les axes
+barplot(ES_PE$nb_PE, names.arg = ES_PE$CODE, xlab = "Nom des especes", 
+        ylab = "Nombre de points d'ecoutes", main = "Nombre de sites frequente par espece", 
+        cex.names = 0.3)#graphique en baton #cex.names pour la taille # names.arg pour def les noms  pour chaque barre 
+abline(h = median(ES_PE$nb_PE), col = "darkred", lty = 2)# Ajout de la ligne de tendance 
+#h pour horizontale, lty = 2 pour les pointilles 
+
+```

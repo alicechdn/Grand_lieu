@@ -11,25 +11,81 @@
 library(readxl)
 PE <- read_excel("C:/git/Grand_lieu/DATA/PE.xlsx",
                   col_names = TRUE)
-#annee en facteur : 
+###### annee en facteur #####
 PE$ANNEE_txt <- as.factor(PE$ANNEE)
 library(data.table)
 setnames(PE,"ESPECE","CODE")
 PE$CODE <- as.factor(PE$CODE)
 PE$SITE <- as.factor(PE$SITE)
 summary(PE)
+####### annee centre et reduite en numerique ###### 
+PE$annee_sc = scale(PE$ANNEE)
 
-#mettre les donnees habitats 
+###### enlever les especes avec trop peu de données (PE2) ####
+#creer variable avec le nombre d'occurence de chaque esp
+occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x == 1))
+occ_esp
+#tapply permet de compter le nombre de fois ou il y a 1 
+# Identifier les espèces qui ont moins de 100 observations 
+rare_species <- names(occ_esp[occ_esp < 100])
+rare_species
+# Filtrer le jeu de données pour exclure les espèces rares
+PE2 <- PE[!(PE$CODE %in% rare_species),]
 
 
 
+####### autres jdd  #####
+library(readxl)
+info_esp <- read_excel("C:/git/Grand_lieu/DATA/info_especes.xlsx",
+                 col_names = TRUE)
+pod_site <- read_excel("C:/git/Grand_lieu/DATA/pod_site2.xlsx",
+                 col_names = TRUE)#mettre les donnees habitats 
+n_eau <- read_excel("C:/git/Grand_lieu/DATA/table_niveau_eau.xlsx",
+                       col_names = TRUE)
+meteo <- read_excel("C:/git/Grand_lieu/DATA/meteo_gl_final.xlsx",
+                       col_names = TRUE)
 
 
 ######## ANALYSES JDD COMPLET ####### 
 
+
+
+###### TEST DE PUISSANCE POUR NOMBRE D OCCURENCES 
+
 library(glmmTMB)#package pour faire glmm
-md1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE),data = PE ,  family = nbinom2, ziformula = ~1)
+
+###### enlever les especes avec trop peu de données (PE2) ####
+#creer variable avec le nombre d'occurence de chaque esp
+occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x >0))
+occ_esp
+
+
+#tapply permet de compter le nombre de fois ou il y a une presence d'oiseaux 
+# Identifier les espèces qui ont moins de 100 observations 
+rare_species_10 <- names(occ_esp[occ_esp < 10])
+rare_species_20 <- names(occ_esp[occ_esp < 20])
+rare_species_50 <- names(occ_esp[occ_esp < 50])
+rare_species_100 <- names(occ_esp[occ_esp < 100])
+rare_species_150 <- names(occ_esp[occ_esp < 150])
+rare_species_200 <- names(occ_esp[occ_esp < 200])
+rare_species_300 <- names(occ_esp[occ_esp < 300])
+rare_species_500 <- names(occ_esp[occ_esp < 500])
+rare_species_600 <- names(occ_esp[occ_esp < 600])
+
+
+# Filtrer le jeu de données pour exclure les espèces rares
+PE2 <- PE[!(PE$CODE %in% rare_species_500),]
+mdp1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE2 ,  family = nbinom2)
+summary(mdp1)
+
+
+
+
+##### Variation d'abondance totale d'oiseaux #######
+library(glmmTMB)#package pour faire glmm
+md1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE ,  family = nbinom2, ziformula = ~1)
 #glmmTMB(var rep ~ var expl eff fixe + (1| var expl eff aleatoire), data = data, family = type de distribution)
+#effet aleatoire des esp car 2 points d'une meme espece ne sont pas aleatoire 
 #Ici, on a bcp de 0, ce qui cree un ecart a la moyenne
 #ziformula = ~1 permet de prendre en compte le "trop plein" de 0 (betement recopie)
 #la distribution negative binomiale est une distribution de comptage, utilise en cas de surdispersion 
@@ -57,56 +113,120 @@ ggplot(data = ggpred, aes(x= x)) +
   geom_line(aes( y= predicted, color = "predict")) +
   geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) +
   labs(y="Variation d'abondance",x="Années", title = "Variation d'abondance de l'ensemble des oiseaux en fonction des annees", color = "Legende")
-  #geom_pointrange(aes(x = x ,y = predicted,  ymin = conf.low , ymax= conf.high)) 
+  #geom_pointrange(aes(x = x ,y = predicted,  ymin = conf.low , ymax= conf.high)) # autre methode pour errorbar 
   
 
 ######## ANALYSES ESP/ESP ########  
 
 library(glmmTMB)#package pour faire glmm
-library(ggplot2)
-library(ggeffects)
-
-#centrer reduire 
-
-
-###### Enlever les especes avec trop peu de données ####
-
-#creer variable avec le nombre d'occurence de chaque esp
-occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x == 1))
-occ_esp
-#tapply permet de compter le nombre de fois ou il y a 1 
+library(DHARMa)#residus
+library(ggplot2)#graph
+library(ggeffects)#graph
 
 
-# Identifier les espèces qui ont moins de 100 observations 
-rare_species <- names(occ_esp[occ_esp < 100])
-rare_species
-# Filtrer le jeu de données pour exclure les espèces rares
-PE2 <- PE[!(PE$CODE %in% rare_species),]
+#espece par espece 
+#ss-jeu de donnees 
 
-###### Boucle pour faire toutes les especes en meme temps  
+
+
+
+
+#Phragmite des joncs 
+ACRSCH_data <- subset(PE2, CODE == "ACRSCH")
+# Variation d'abondance : Modèle linéaire mixte avec glmmTMB pour chaque espèce
+md_va_ACRSCH <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = ACRSCH_data, family = nbinom2, ziformula = ~1)
+summary(md_va_ACRSCH)
+#Residus 
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = md_va_ACRSCH, plot = T)#met du temps 
+testZeroInflation(simulationOutput)
+# Graphique d'abondance en fonction de l'année 
+gg2<- ggpredict(md_va_ACRSCH,terms = c("ANNEE_txt"))
+plot_var_ab <- ggplot(gg2, aes(x = x, y = predicted)) +
+  geom_point() +
+  geom_line(aes(group = 1)) +
+ #geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=0.1) + 
+  labs(x = "Année", y = "Abondance", title = paste("Variation d'abondance de phragmite des joncs au fil du temps"))
+print(plot_var_ab)
+# Créer une table pour la sortie du modèle
+print(gg2)
+ref <- gg2$predicted[1] 
+d_pred <- data.frame(annee = gg2$x,abondance_var = gg2$predicted / ref, ICinf = gg2$conf.low/ref , ICsup = gg2$conf.high/ref)
+print(d_pred)
+plot(d_pred$annee, d_pred$abondance_var, xlab = "Annee", ylab = "abondance")
+#tendance de l'espece : Modèle linéaire mixte avec glmmTMB
+md_td_ACRSCH <- glmmTMB(ABONDANCE ~ annee_sc + (1|SITE) , data = ACRSCH_data, family = nbinom2)
+summary(md_td_ACRSCH)# resume du modèle
+#Residus 
+simulationOutput <- simulateResiduals(fittedModel = md_td_ACRSCH, plot = T)#met du temps 
+testZeroInflation(simulationOutput)
+#Graphique de la tendance 
+gg3<- ggpredict(md_td_ACRSCH,terms = c("annee_sc"))
+plot_var_ab <- ggplot(gg3, aes(x = x, y = predicted)) +
+  #geom_point() +
+  geom_line(aes(group = 1)) +
+  #geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=0.1) + 
+  labs(x = "Année", y = "Abondance", title = paste("Abondance de phragmite des joncs au fil du temps"))
+print(plot_var_ab)
+print(gg3)
+ref <- gg3$predicted[1] 
+d_pred <- data.frame(annee = gg3$x,abondance_var = gg3$predicted / ref, ICinf = gg3$conf.low/ref , ICsup = gg3$conf.high/ref)
+print(d_pred)
+plot(d_pred)
+d_pred$annee_orig <- (d_pred$annee * sd(PE$ANNEE)) + mean(PE$ANNEE)
+
+library(gridExtra)
+# Combinaison de la table de sortie et du graphique en une seule image
+#grid.arrange(plot_var_ab, tableGrob(output_table), ncol = 2, widths = c(2, 1))
+
+
+
+
+
+gg2<- ggpredict(mde,terms = c("ANNEE_txt"))
+ggplot(gg2, aes(x = x, )) +
+  geom_point(aes( y= predicted)) +
+  geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) + 
+  labs(x = "Année", y = "Abondance", title = paste("Abondance de phragmite des joncs au fil du temps"))
+
+
+
+
+
+
+
+
+
+
+
+###### Boucle pour faire toutes les especes en meme temps  #####
 
 for (i in unique(PE2$CODE)) {
   # Créer un sous-ensemble de données pour chaque espèce
   esp_data <- subset(PE2, CODE == i)
+  #enlever les sites ou l'esp n'a jamais ete vu, et enlever les annees avant la premiere donnee # rtrim
   
   # Modèle linéaire mixte avec glmmTMB pour chaque espèce
-  mde <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = esp_data)
+  mde <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = esp_data,  family = nbinom2, ziformula = ~1)
   
   # Afficher le résumé du modèle
   summary(mde)
   
   # Tracer un graphique d'abondance en fonction de l'année pour chaque espèce
-  gg2<- ggpredict(mde,terms = c("ANNEE_txt"))
+  gg2<- ggpredict(mde,terms = c("ANNEE_txt")) #object mauvais avec gg2 
   ggplot(gg2, aes(x = x, )) +
     geom_point(aes( y= predicted, color = "predict")) +
+    geom_line(aes(group = 1)) +
     geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) + 
-    labs(x = "Année", y = "Abondance", title = paste("Abondance de", i , " au fil du temps"))
+    labs(x = "Année", y = "Abondance", title = paste("Abondance de ", i , " au fil du temps"))
   
   # Sauvegarder le graphique dans un fichier PNG
-  ggsave(paste0(i, ".png"), width = 8, height = 6, dpi = 300)
+  ggsave(paste0("var_ab_", i,".png"), width = 6, height = 4) #dpi 72 pour ordi 
 }
 
 #ajouter une ligne qui reli les points entre eux 
+#faire la tendance en meme temps 
+#ecrire la pente sur le graphique avec intervalle de confiance 
 
 
 
@@ -133,3 +253,4 @@ for (i in unique(PE2$CODE)) {
 # glmmTMB( ABONDANCE ~ ANNEE_txt + (1|site),data = PE ,  family = negbin)#habitat #ZE = 0 (exces de 0)
 # 
 # install.packages("DHARMa'")#test et agencement du modele #voir page aide 
+

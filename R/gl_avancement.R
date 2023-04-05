@@ -178,7 +178,26 @@ hab$urbain <- ifelse(hab$Habitat_1 %in% c(14:17), 1,
                                ifelse(hab$Habitat_3 %in% c(14:17), 1, NA)))
 hab_new <- subset(hab, select = - c(Habitat_1,Habitat_2,Habitat_3))
 
+table(hab$Habitat_1)
+sum(table(hab$Habitat_2))
+sum(table(hab$Habitat_3))
+
+corplot(hab$Route, hab$Derangement)
+
+
+
+
+
+library(PerformanceAnalytics)
+Z<-cbind(hab$Route, hab$Derangement)
+colnames(Z)<-c( "route", " derangement")
+chart.Correlation(Z,histogram = TRUE)
+
+
+#changement à faire pour les habitats, 8-9 en foret ? habitations éparses 
+
 pod_site <- merge(pod_site, hab_new, by = "Site")
+pod_site[is.na(pod_site)] <- 0
 
               
 ####### b - Les noms vernaculaires des oiseaux : code_crbpo #####
@@ -927,8 +946,30 @@ library(openxlsx)
 write.csv(PE_info, file = "PE.csv", row.names = TRUE)
 write.xlsx(PE, file = "PE.xlsx", sheetName = TRUE)
 write.xlsx(info_especes, file = "info_especes.xlsx", sheetName = TRUE)
-write.xlsx(pod_site, file = "pod_site.xlsx", sheetName = TRUE)
+write.xlsx(pod_site, file = "pod_site2.xlsx", sheetName = TRUE)
 write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
 write.xlsx(meteo_y_etude, file = "meteo_gl_final.xlsx", sheetName = TRUE)
 
+
+```{r fonction}
+
+ajout_1 <- function(x,affiche = TRUE,g=0){
+  x <- x + 1 + g
+  if(affiche) print(x) else return(x)
+}
+
+
+```
+
+
+
+
+```{r ajout1}
+
+
+ajout_1(x = 10, g = 2)
+
+g <- ajout_1(6,FALSE)
+
+print(g)
 

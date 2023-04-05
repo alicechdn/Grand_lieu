@@ -1,0 +1,96 @@
+---
+title: "Analyses_gl_essai_1"
+author: "Alice"
+date: "31/03/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Chargement du jeu de donnees
+library(readxl)
+PE <- read_excel("C:/git/Grand_lieu/DATA/PE.xlsx",
+                  col_names = TRUE)
+
+info_esp <- read_excel("C:/git/Grand_lieu/DATA/info_especes.xlsx",
+                 col_names = TRUE)
+pod_site <- read_excel("C:/git/Grand_lieu/DATA/pod_site2.xlsx",
+                 col_names = TRUE)#mettre les donnees habitats 
+n_eau <- read_excel("C:/git/Grand_lieu/DATA/table_niveau_eau.xlsx",
+                       col_names = TRUE)
+meteo <- read_excel("C:/git/Grand_lieu/DATA/meteo_gl_final.xlsx",
+                       col_names = TRUE)
+
+```
+
+# Les Analyses
+
+## Préparation du jeu de données
+
+Mettre les années en facteurs pour comparer les variations d'abondances
+
+```{r}
+
+PE$ANNEE_txt <- as.factor(PE$ANNEE)
+library(data.table)
+setnames(PE,"ESPECE","CODE")#remplacer le nom "espece" par "code"
+PE$CODE <- as.factor(PE$CODE)
+PE$SITE <- as.factor(PE$SITE)
+PE$annee_sc = scale(PE$ANNEE)#centrer/reduire les annees
+summary(PE)
+
+```
+
+Ensuite, on enleve les espèces avec trop peu de données, car celles-ci ne peuvent pas être pris en compte : Statistiquement, les données avec trop peu d'occurences ne peuvent pas calculer de tendances.
+
+\#\#\#Faire le test de puissance pour savoir combien d'occurences on prend
+
+[ faire le script test de puissance ]
+
+On crée donc un nouvel objet qui ne contient que les espèces avec au moins 100 occurences sur l'ensemble du jeu de données \#creer variable avec le nombre d'occurence de chaque esp
+
+```{r PE2}
+
+occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x > 0))
+occ_esp
+ 
+# Identifier les espèces qui ont moins de 100 observations 
+rare_species <- names(occ_esp[occ_esp < 100])
+rare_species
+# Filtrer le jeu de données pour exclure les espèces rares
+PE2 <- PE[!(PE$CODE %in% rare_species),]
+```
+
+La fonction tapply permet d'appliquer une fonction à des sous-ensembles de données. Elle est souvent utilisée pour calculer des statistiques descriptives (moyenne, médiane etc). Ici, elle nous permet de compter le nombre de fois où il y a une présence de l'oiseau (abondance \> 0) tapply(X, INDEX, FUN)
+
+# Analyses du jeu de données en entier
+
+## Variation d'abondance
+
+```{r complet}
+
+
+library(glmmTMB)#package pour faire glmm
+md1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE,  family = nbinom2, ziformula = ~1)
+ 
+smd1 <- summary(md1)
+print(smd1)
+#ANALYSES DES RESIDUS
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = md1, plot = F)#met du temps 
+testZeroInflation(simulationOutput)
+plot(simulationOutput)
+
+```
+
+### Explication du modèle :
+
+glmmTMB(var rep \~ var expl eff fixe + (1\| var expl eff aleatoire), data = data, family = type de distribution) 
+On place les espèces (CODE) en effet aléatoire car les deux points d'une même espèce ne sont pas indépendant. Dans ce jeu de données de comptage, nous avons beaucoup de 0 lorsque les espèces ne sont pas présentes. Pour corriger cet effet, on ajoute "ziformula" qui va prendre en compte l'excès de 0 dans le modèle. \#la distribution negative binomiale est une distribution de comptage, utilise en cas de surdispersion \#il en existe 2, nbinom1 et nbinom2 \#nbinom2 est une négative binomiale tandis que nbinom1 correspond à du quasi-poisson. 
+
+\`\`\` {r} confint(md1)\#donne les intervalles de confiance avec l'estimate
+
+# GRAPHIQUES
+
+library(ggplot2) library(ggeffects) ggpred \<- ggpredict(md1,terms = c("ANNEE_txt")) plot(ggpred) summary(ggpred) ggpred$x <- as.numeric(as.character(ggpred$x)) ggplot(data = ggpred, aes(x= x)) + geom_point(aes( y= predicted, color = "predict")) + geom_line(aes( y= predicted, color = "predict")) + geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) + labs(y="Variation d'abondance",x="Années", title = "Variation d'abondance de l'ensemble des oiseaux en fonction des annees", color = "Legende") \#geom_pointrange(aes(x = x ,y = predicted, ymin = conf.low , ymax= conf.high)) \# autre methode pour errorbar

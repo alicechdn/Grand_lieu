@@ -1,0 +1,115 @@
+---
+title: "GL_test_de_puissance"
+author: "Alice"
+date: "05/04/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# [Test de puissance afin d'estimer le nombre d'occurences optimal]{.ul}
+
+PE comporte des espèces rares dans son jeu de données, certaines ayant été vu qu'une seule fois. ..% des espèces ont été vu moins de 100 fois, sur 119 points d'écoutes et 20 ans de suivi. Afin d'estimer correctement une variation d'abondance et une tendance, nous allons effectuer ici des tests de puissance pour évaluer le nombre miminum d'occurences nécessaire pour calculer un résultat statistiquement viable.
+
+Notons que la bibliographie trouvé à ce sujet suggère [..] occurences minimum.
+
+## 1) Chargement et mise en forme
+
+## a) Chargement
+
+```{r chargement}
+library(readxl)
+PE <- read_excel("C:/git/Grand_lieu/DATA/PE.xlsx",
+                 col_names = TRUE)
+###### annee en facteur #####
+PE$ANNEE_txt <- as.factor(PE$ANNEE)
+library(data.table)
+setnames(PE,"ESPECE","CODE")
+PE$CODE <- as.factor(PE$CODE) ; PE$SITE <- as.factor(PE$SITE)
+summary(PE)
+####### annee centre et reduite en numerique ###### 
+PE$annee_sc = scale(PE$ANNEE)
+
+library(glmmTMB)#package pour faire glmm
+```
+
+## b) Création d'un objet contenant la somme des occurences de chaque espece
+
+```{r occurence}
+occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x >0))
+occ_esp #correspond au nombre d'occurence de chaque espece
+```
+
+\#tapply permet de compter le nombre de fois ou il y a une presence d'oiseaux
+
+Faire une case " stats descriptives"
+
+## [2) 1ère méthode, le faire à la main]{.ul} 
+
+### a) Identifier les espèces qui ont moins de "n" observations : 
+
+Sous categories :Filtrer le jeu de données pour exclure les espèces rares
+
+```{r main}
+rare_species_10 <- names(occ_esp[occ_esp < 10])
+rare_species_20 <- names(occ_esp[occ_esp < 20])
+rare_species_50 <- names(occ_esp[occ_esp < 50])
+rare_species_100 <- names(occ_esp[occ_esp < 100])
+rare_species_150 <- names(occ_esp[occ_esp < 150])
+rare_species_200 <- names(occ_esp[occ_esp < 200])
+rare_species_300 <- names(occ_esp[occ_esp < 300])
+rare_species_500 <- names(occ_esp[occ_esp < 500])
+rare_species_600 <- names(occ_esp[occ_esp < 600])
+```
+
+### b) Faire les modèles avec les nouveaux sous jeu de données : 
+
+```{r}
+PE_300 <- PE[!(PE$CODE %in% rare_species_300),]
+md_300 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE_300 ,  family = nbinom2)
+summary(md_300)
+
+PE_500 <- PE[!(PE$CODE %in% rare_species_500),]
+md_500 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE2 ,  family = nbinom2)
+summary(md_500)
+```
+
+## [3) 2ème méthode, le faire avec des fonctions et des boucles]{.ul}
+
+### a) Identifier les espèces qui ont moins de "n" observations : 
+
+```{r}
+r_spf <- function(x, affiche = TRUE){
+  assign(paste0("rare_species_",x), names(occ_esp[occ_esp < x]), envir = .GlobalEnv)
+  if(affiche){
+    str(get(paste0("rare_species_",x)))
+  }
+}
+
+list_x <- c(10,50,100,150,200,300,500,600)
+for (x in list_x) {
+  r_spf(x)
+}
+
+#la fonction assign permet d'attribuer des valeurs à un object en créant un nom d'objet dynamique
+```
+
+```{r mod}
+modele_f <- function(x, affiche = TRUE){
+  assign(paste0("PE", x), PE[!(PE$CODE %in% paste0("rare_species_",x)),])
+  assign(paste0("md_",x), glmmTMB(ABONDANCE ~ annee_sc + (1|SITE) + (1|CODE), data = get(paste0("PE",x)), family = nbinom2))
+  if(affiche){
+    summary(get(paste0("md_",x)))
+  }
+}
+
+for (x in list_x) {
+  modele_f(x)
+}
+```
+#Faire une boucle, creer un objet avec et ensuite les comparer entre eux 
+
+#ranger dans une liste les paramètres de ce que je veux puis en faire un test de puissance 
+```
