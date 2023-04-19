@@ -1,0 +1,13 @@
+   occ               time
+1    1 207.66 sec elapsed
+2   10 193.84 sec elapsed
+3   20 201.56 sec elapsed
+4   50  193.1 sec elapsed
+5  100 173.25 sec elapsed
+6  150    190 sec elapsed
+7  200 223.98 sec elapsed
+8  300 178.49 sec elapsed
+9  400 178.75 sec elapsed
+10 500 154.61 sec elapsed
+11 600 163.67 sec elapsed
+12 900 108.38 sec elapsed

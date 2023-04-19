@@ -1,0 +1,276 @@
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 255256.1  255308.2 -127623.0  255246.1    247396 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05814  0.2411  
+ CODE   (Intercept) 5.95245  2.4398  
+Number of obs: 247401, groups:  SITE, 119; CODE, 99
+
+Dispersion parameter for nbinom2 family (): 0.84 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -2.884958   0.248184  -11.62   <2e-16 ***
+annee_sc    -0.071859   0.005059  -14.20   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 254608.2  254659.4 -127299.1  254598.2    207412 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05836  0.2416  
+ CODE   (Intercept) 2.78642  1.6693  
+Number of obs: 207417, groups:  SITE, 119; CODE, 83
+
+Dispersion parameter for nbinom2 family (): 0.84 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -2.058847   0.184933  -11.13   <2e-16 ***
+annee_sc    -0.072087   0.005061  -14.24   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 252998.6  253049.4 -126494.3  252988.6    192418 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05785  0.2405  
+ CODE   (Intercept) 2.26203  1.5040  
+Number of obs: 192423, groups:  SITE, 119; CODE, 77
+
+Dispersion parameter for nbinom2 family (): 0.847 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -1.833822   0.173084   -10.6   <2e-16 ***
+annee_sc    -0.074413   0.005062   -14.7   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 245681.2  245731.2 -122835.6  245671.2    162430 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05391  0.2322  
+ CODE   (Intercept) 1.57472  1.2549  
+Number of obs: 162435, groups:  SITE, 119; CODE, 65
+
+Dispersion parameter for nbinom2 family (): 0.903 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -1.441437   0.157293  -9.164   <2e-16 ***
+annee_sc    -0.084745   0.005054 -16.766   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 239147.6  239196.9 -119568.8  239137.6    142438 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05348  0.2312  
+ CODE   (Intercept) 1.14914  1.0720  
+Number of obs: 142443, groups:  SITE, 119; CODE, 57
+
+Dispersion parameter for nbinom2 family (): 0.925 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -1.167398   0.143723  -8.123 4.57e-16 ***
+annee_sc    -0.083526   0.005077 -16.452  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 233332.7  233381.4 -116661.3  233322.7    127444 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05199  0.2280  
+ CODE   (Intercept) 0.80840  0.8991  
+Number of obs: 127449, groups:  SITE, 119; CODE, 51
+
+Dispersion parameter for nbinom2 family (): 0.925 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -0.943413   0.127772  -7.384 1.54e-13 ***
+annee_sc    -0.082883   0.005121 -16.185  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 232071.3  232120.0 -116030.6  232061.3    124945 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05155  0.2270  
+ CODE   (Intercept) 0.76078  0.8722  
+Number of obs: 124950, groups:  SITE, 119; CODE, 50
+
+Dispersion parameter for nbinom2 family (): 0.924 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -0.907904   0.125242  -7.249 4.19e-13 ***
+annee_sc    -0.083544   0.005133 -16.276  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 216968.6  217016.6 -108479.3  216958.6    107452 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05345  0.2312  
+ CODE   (Intercept) 0.61249  0.7826  
+Number of obs: 107457, groups:  SITE, 119; CODE, 43
+
+Dispersion parameter for nbinom2 family (): 0.982 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -0.725822   0.121359  -5.981 2.22e-09 ***
+annee_sc    -0.079012   0.005221 -15.135  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+      AIC       BIC    logLik  deviance  df.resid 
+ 209937.5  209985.1 -104963.7  209927.5     99955 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.05586  0.2364  
+ CODE   (Intercept) 0.55408  0.7444  
+Number of obs: 99960, groups:  SITE, 119; CODE, 40
+
+Dispersion parameter for nbinom2 family (): 0.983 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -0.641720   0.119817  -5.356 8.52e-08 ***
+annee_sc    -0.078031   0.005295 -14.736  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+     AIC      BIC   logLik deviance df.resid 
+185609.6 185656.2 -92799.8 185599.6    82462 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.0873   0.2955  
+ CODE   (Intercept) 0.5209   0.7217  
+Number of obs: 82467, groups:  SITE, 119; CODE, 33
+
+Dispersion parameter for nbinom2 family ():  1.1 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -0.508775   0.128670  -3.954 7.68e-05 ***
+annee_sc    -0.085364   0.005475 -15.591  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+     AIC      BIC   logLik deviance df.resid 
+165010.3 165055.9 -82500.1 165000.3    67468 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.1044   0.3232  
+ CODE   (Intercept) 0.4592   0.6776  
+Number of obs: 67473, groups:  SITE, 119; CODE, 27
+
+Dispersion parameter for nbinom2 family (): 1.12 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -0.339330   0.133881  -2.535   0.0113 *  
+annee_sc    -0.077592   0.005767 -13.455   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+ Family: nbinom2  ( log )
+Formula:          ABONDANCE ~ annee_sc + (1 | SITE) + (1 | CODE)
+Data: get(paste0("PE", x))
+
+     AIC      BIC   logLik deviance df.resid 
+124736.8 124780.3 -62363.4 124726.8    44977 
+
+Random effects:
+
+Conditional model:
+ Groups Name        Variance Std.Dev.
+ SITE   (Intercept) 0.1340   0.3660  
+ CODE   (Intercept) 0.3259   0.5709  
+Number of obs: 44982, groups:  SITE, 119; CODE, 18
+
+Dispersion parameter for nbinom2 family ():  1.3 
+
+Conditional model:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -0.064104   0.138849  -0.462    0.644    
+annee_sc    -0.079274   0.006358 -12.469   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1

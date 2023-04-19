@@ -1,0 +1,204 @@
+---
+title: "Fiche espèce - CUCCAN"
+author: "Alice"
+date: "17/04/2023"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Fiche espèce : CUCCAN
+
+```{r cars}
+
+```
+
+## Pré-traitement du jdd
+
+1)  Pré-traitement de PE
+
+```{r cars}
+####### CHARGEMENT ET MISE EN FORME DU JDD #####
+library(readxl)
+PE <- read_excel("C:/git/Grand_lieu/DATA/PE.xlsx",
+                  col_names = TRUE)
+###### annee en facteur 
+PE$ANNEE_txt <- as.factor(PE$ANNEE)
+library(data.table)
+setnames(PE,"ESPECE","CODE")
+PE$CODE <- as.factor(PE$CODE)
+PE$SITE <- as.factor(PE$SITE)
+#summary(PE)
+####### annee centre et reduite en numerique 
+PE$annee_sc = scale(PE$ANNEE)
+```
+
+2)  Pré-traitement de CUCCAN_data
+
+```{r}
+
+CUCCAN_data <- subset(PE, CODE == "CUCCAN")
+#### ENLEVER LES SITES VIDES
+occ_site <- tapply(CUCCAN_data$ABONDANCE, CUCCAN_data$SITE, function(x) sum(x > 0))
+hist(tapply(CUCCAN_data$ABONDANCE, CUCCAN_data$SITE, function(x) sum(x > 0))) 
+site_vide <- names(occ_site[occ_site < 1])
+site_vide#liste des sites avec 0 occurence de CUCCAN 
+CUCCAN_data2<- CUCCAN_data[!(CUCCAN_data$SITE %in% site_vide),]
+
+
+# #### ENLEVER LES ANNEES VIDES
+
+occ_year <- aggregate(ABONDANCE~ ANNEE_txt, data = CUCCAN_data2, FUN = sum)
+year_delete <- numeric()
+
+for (i in c(1:(length(occ_year)))) {
+  if (occ_year$ABONDANCE[i] ==0) {
+    year_delete <- c(year_delete,occ_year$ANNEE_txt[i])
+  } else {break}}
+
+year_delete#liste des sites avec 0 occurence de CUCCAN 
+CUCCAN_data3<- CUCCAN_data2[!(CUCCAN_data2$ANNEE_txt %in% year_delete),] 
+#j'espere que cela fonctionne, il faut que je trouve une espece adequate 
+```
+
+## Les analyses :
+
+1)  [**La variation d'abondance**]{.ul}
+
+Pour visualiser la variation d'abondance de phragmite des joncs, on
+compare l'abondance en fonction de l'année. L'année est mise en facteur.
+Cela permet de comparer chaque année de façon indépendante (des
+evenements distincts).
+
+```{r varab, echo=FALSE}
+
+#PACKAGES
+library(glmmTMB)#package pour faire glmm
+library(DHARMa)#residus
+library(ggplot2)#graph
+library(ggeffects)#graph
+
+
+# Variation d'abondance : Modèle linéaire mixte avec glmmTMB pour chaque espèce
+md_va_CUCCAN <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = CUCCAN_data2, family = nbinom2, ziformula = ~1)
+summary(md_va_CUCCAN)
+
+
+#Residus 
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = md_va_CUCCAN, plot = T)#met du temps 
+testZeroInflation(simulationOutput)
+
+
+# Graphique d'abondance en fonction de l'année 
+gg2<- ggpredict(md_va_CUCCAN,terms = c("ANNEE_txt"))
+plot_var_ab <- ggplot(gg2, aes(x = x, y = predicted)) +
+  geom_point() +
+  geom_line(aes(group = 1)) +
+ geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=0.1) + 
+  labs(x = "Année", y = "Abondance", title = paste("Variation d'abondance de coucou au fil du temps"))
+print(plot_var_ab)
+
+
+# Créer une table pour la sortie du modèle
+print(gg2)
+ref <- gg2$predicted[1] 
+d_pred <- data.frame(annee = gg2$x,abondance_var = gg2$predicted / ref, ICinf = gg2$conf.low/ref , ICsup = gg2$conf.high/ref)
+print(d_pred)
+plot(d_pred$annee, d_pred$abondance_var, xlab = "Annee", ylab = "abondance")
+
+
+
+```
+
+\#glmmTMB(var rep \~ var expl eff fixe + (1\| var expl eff aleatoire),
+data = data, family = type de distribution) \#effet aleatoire des esp
+car 2 points d'une meme espece ne sont pas aleatoire \#Ici, on a bcp de
+0, ce qui cree un ecart a la moyenne \#ziformula = \~1 permet de prendre
+en compte le "trop plein" de 0 (betement recopie) \#la distribution
+negative binomiale est une distribution de comptage, utilise en cas de
+surdispersion \#il en existe 2, nbinom1 et nbinom2 \#nbinom2 plus
+precise )
+
+2)  [**La tendance de l'espèce**]{.ul}
+
+```{r tend, echo=FALSE}
+
+#tendance de l'espece : Modèle linéaire mixte avec glmmTMB
+md_td_CUCCAN <- glmmTMB(ABONDANCE ~ annee_sc + (1|SITE) , data = CUCCAN_data, family = nbinom2, ziformula = ~1)
+summary(md_td_CUCCAN)# resume du modèle
+
+
+#Residus 
+simulationOutput <- simulateResiduals(fittedModel = md_td_CUCCAN, plot = T)#met du temps 
+testZeroInflation(simulationOutput)
+res5<-residuals(md_td_CUCCAN)
+hist(res5, nclass=20, main="", xlab="Residuals", ylab="Occurrence", cex.lab=1.5,col='grey') # distribution des résidus
+
+
+#Graphique de la tendance 
+confint(md_td_CUCCAN)
+gg3<- ggpredict(md_td_CUCCAN,terms = c("annee_sc"))
+plot_var_ab <- ggplot(gg3, aes(x = x, y = predicted)) +
+  #geom_point() +
+  geom_line(aes(group = 1)) +
+  #geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=0.1) + 
+  labs(x = "Année", y = "Abondance", title = paste("Abondance de phragmite des joncs au fil du temps"))
+print(plot_var_ab)
+print(gg3)
+ref <- gg3$predicted[1] 
+d_pred <- data.frame(annee = gg3$x,abondance_var = gg3$predicted / ref, ICinf = gg3$conf.low/ref , ICsup = gg3$conf.high/ref)
+print(d_pred)
+plot(d_pred)
+d_pred$annee_orig <- (d_pred$annee * sd(PE$ANNEE)) + mean(PE$ANNEE)
+
+
+
+
+#GRAPHIQUES
+gg2<- ggpredict(mde,terms = c("ANNEE_txt"))
+ggplot(gg2, aes(x = x, )) +
+  geom_point(aes( y= predicted)) +
+  geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) + 
+  labs(x = "Année", y = "Abondance", title = paste("Abondance de phragmite des joncs au fil du temps"))
+
+```
+
+3)  [**Comment évolue la variable habitat ?**]{.ul}
+
+```{r hab, echo=FALSE}
+length(unique(CUCCAN_data2$SITE)) #Nombre de sites où elle a été vu sum(CUCCAN_data2$ABONDANCE)
+#Nombre d'individu de l'espece entendu au total :
+
+list_x <- as.factor(c(2002:2021))
+
+for (x in list_x) { CUCCAN_data_new <-
+CUCCAN_data2[(CUCCAN_data2$ANNEE_txt == x),] 
+ar <-tapply(CUCCAN_data_new$ABONDANCE, CUCCAN_data_new$SITE, function(a)
+sum(a >= 1))
+
+ar[is.na(ar)] <- 0
+presence <- names(ar[ar > 0]) 
+nb<- length(presence) nb_indiv <- sum(CUCCAN_data_new$ABONDANCE) 
+
+tab_x<- data.frame(x,nb, nb_indiv) 
+
+if (x == list_x[1]) {
+  tab_occ_site<-tab_x } 
+else { tab_occ_site <- rbind(tab_occ_site, tab_x) }
+
+print(tab_occ_site) }
+
+plot(tab_occ_site$nb ~tab_occ_site$x , type = "b", xlab = "Annee", ylab
+= "Nombre de points d'ecoute", main = "Graphique du nombre de PE du
+Phragmite des joncs en fonction du temps")
+
+plot(tab_occ_site$nb_indiv ~tab_occ_site$x , type = "b", xlab = "Annee",
+ylab = "Nombre d'individus", main = "Graphique du nombre d'indiv en
+fonction du temps")
+```

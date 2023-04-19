@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # [Test de puissance afin d'estimer le nombre d'occurences optimal]{.ul}
 
-PE comporte des espèces rares dans son jeu de données, certaines ayant été vu qu'une seule fois. ..% des espèces ont été vu moins de 100 fois, sur 119 points d'écoutes et 20 ans de suivi. Afin d'estimer correctement une variation d'abondance et une tendance, nous allons effectuer ici des tests de puissance pour évaluer le nombre miminum d'occurences nécessaire pour calculer un résultat statistiquement viable.
+PE comporte des espèces rares dans son jeu de données, certaines ayant été vu qu'une seule fois. Par exemple, ..% des espèces ont été vu moins de 100 fois, sur 119 points d'écoutes et 20 ans de suivi. Afin d'estimer correctement une variation d'abondance et une tendance, nous allons effectuer ici des tests de puissance pour évaluer le nombre miminum d'occurences nécessaire pour calculer un résultat statistiquement viable.
 
 Notons que la bibliographie trouvé à ce sujet suggère [..] occurences minimum.
 
@@ -42,13 +42,13 @@ occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x >0))
 occ_esp #correspond au nombre d'occurence de chaque espece
 ```
 
-\#tapply permet de compter le nombre de fois ou il y a une presence d'oiseaux
+\#La fonction tapply permet de compter le nombre de fois ou il y a une presence d'oiseaux
 
 Faire une case " stats descriptives"
 
-## [2) 1ère méthode, le faire à la main]{.ul} 
+## [2) 1ère méthode, le faire à la main]{.ul}
 
-### a) Identifier les espèces qui ont moins de "n" observations : 
+### a) Identifier les espèces qui ont moins de "n" observations :
 
 Sous categories :Filtrer le jeu de données pour exclure les espèces rares
 
@@ -64,7 +64,7 @@ rare_species_500 <- names(occ_esp[occ_esp < 500])
 rare_species_600 <- names(occ_esp[occ_esp < 600])
 ```
 
-### b) Faire les modèles avec les nouveaux sous jeu de données : 
+### b) Faire les modèles avec les nouveaux sous jeu de données :
 
 ```{r}
 PE_300 <- PE[!(PE$CODE %in% rare_species_300),]
@@ -78,7 +78,7 @@ summary(md_500)
 
 ## [3) 2ème méthode, le faire avec des fonctions et des boucles]{.ul}
 
-### a) Identifier les espèces qui ont moins de "n" observations : 
+### a) Identifier les espèces qui ont moins de "n" observations :
 
 ```{r}
 r_spf <- function(x, affiche = TRUE){
@@ -96,6 +96,8 @@ for (x in list_x) {
 #la fonction assign permet d'attribuer des valeurs à un object en créant un nom d'objet dynamique
 ```
 
+### b) Faire le modèle associé
+La fonction qui permet d'executer chaque modèle : 
 ```{r mod}
 modele_f <- function(x, affiche = TRUE){
   assign(paste0("PE", x), PE[!(PE$CODE %in% paste0("rare_species_",x)),])
@@ -104,12 +106,44 @@ modele_f <- function(x, affiche = TRUE){
     summary(get(paste0("md_",x)))
   }
 }
+```
+Puis les boucles qui permettent de creer le data frame 
+```{r}
+
+result_time <- data.frame()
+for (x in list_x) {
+  tic()
+  modx <- modele_f(x)
+  temps <- toc() #elapsed pour avoir un nbre 
+  #Stocker les résultats de temps :
+  assign(paste0("result_",x), cbind(x, temps$callback_msg), envir = .GlobalEnv)
+  result_time <- rbind(result_time, get(paste0("result_",x)))
+}
+colnames(result_time) <- c("occ","time")
+conf_tot <- data.frame()
 
 for (x in list_x) {
-  modele_f(x)
-}
-```
-#Faire une boucle, creer un objet avec et ensuite les comparer entre eux 
+  assign(paste0("conf_",x), rbind(confint(get(paste0("md_",x)))[2,]),envir = .GlobalEnv)
+  assign(paste0("conf_",x), cbind(get(paste0("conf_",x)), x),envir = .GlobalEnv)
+  conf_tot <- rbind(conf_tot, get(paste0("conf_",x)))
+}#boucle pour obtenir une variable occurence
 
-#ranger dans une liste les paramètres de ce que je veux puis en faire un test de puissance 
+colnames(conf_tot) <- c("IC_inf","IC_sup","estimate", "occurence")
+
 ```
+
+
+
+ajouter une fonction pour calculer le temps que cela prend
+
+Faire le test de puissance \`\`\`
+
+Mettre le temps que le modèle met pour tourner dans la boucle
+
+### 4) Faire un plot :
+
+Maintenant qu'on a notre tableau contenant tous les estimates des différents modèles, on peut créer un graphiques qui nous renseigne sur l'estimate en fonction de l'occurence minimale choisi pour les oiseaux du jdd.
+
+```{r}
+
+plot(conf_tot$estimate~conf_tot$occurence, xlab = "occurence", ylab = "estimate", main = "valeur de l'estimate en fonction du nbre d'occurence")

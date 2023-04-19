@@ -184,21 +184,6 @@ sum(table(hab$Habitat_3))
 
 corplot(hab$Route, hab$Derangement)
 
-#Nouvelle version de la variable habitat : 
-
-library(readxl)
-hab1 <- read_excel("C:/git/Grand_lieu/DATA/habitats_new.xlsx", col_names = TRUE)#chargement du jdd 
-colnames(code_crbpo) <- c("ESPECE", "NOM_FR_BIRD")#nom des variables dans la matrice
-#View(code_crbpo)#visualisation du jdd
-dim(hab1)
-#Supprimer les caracteres speciaux
-hab1$Site<- gsub("[éèêë]", "e", hab1$Site, ignore.case = TRUE)
-hab1$Site <- gsub("[àâ]", "a",hab1$Site, ignore.case = TRUE)
-# changer nom des colonnes 
-library(data.table)
-setnames(hab1,"Dérangement","derangement")
-#Ne garder que les colonnes importantes
-hab1 <- subset(hab1, select = c(Site,ZI,derangement,ZSC,arbres,buissons,aqua,urbain))
 
 
 
@@ -214,8 +199,6 @@ chart.Correlation(Z,histogram = TRUE)
 pod_site <- merge(pod_site, hab_new, by = "Site")
 pod_site[is.na(pod_site)] <- 0
 
-pod_site <- merge(pod_site, hab1, by = "Site")
-pod_site[is.na(pod_site)] <- 0
               
 ####### b - Les noms vernaculaires des oiseaux : code_crbpo #####
 
@@ -761,10 +744,6 @@ table(PE$SITE)# pas grand interet ?
 table(PE_obs$SITE)#nombre d observation par site 
 hist(table(PE_obs$SITE))
 
-tapply(PE2$ABONDANCE, PE2$SITE, function(x) sum(x > 0))
-hist(tapply(PE2$ABONDANCE, PE2$SITE, function(x) sum(x > 0)))#la repartition suit une loi normale 
-
-
 #Nombre d'oiseaux (en abondance (donc pas tres pertinent?)) par site :
 AB_site <- aggregate(ABONDANCE ~ SITE, data = PE_obs, FUN = sum)#fonction aggregate pour fusionner des infos ensemble 
 colnames(AB_site)[2] <- "nb_bird"#renomme variable ABONDANCE
@@ -967,7 +946,7 @@ library(openxlsx)
 write.csv(PE_info, file = "PE.csv", row.names = TRUE)
 write.xlsx(PE, file = "PE.xlsx", sheetName = TRUE)
 write.xlsx(info_especes, file = "info_especes.xlsx", sheetName = TRUE)
-write.xlsx(pod_site, file = "pod_site3.xlsx", sheetName = TRUE)
+write.xlsx(pod_site, file = "pod_site2.xlsx", sheetName = TRUE)
 write.xlsx(table_niveau_eau, file = "table_niveau_eau.xlsx", sheetName = TRUE)
 write.xlsx(meteo_y_etude, file = "meteo_gl_final.xlsx", sheetName = TRUE)
 write.xlsx(hab_name, file = "hab_name.xlsx", sheetName = TRUE)

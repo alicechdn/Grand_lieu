@@ -11,17 +11,18 @@
 library(readxl)
 PE <- read_excel("C:/git/Grand_lieu/DATA/PE.xlsx",
                   col_names = TRUE)
-###### annee en facteur #####
+###### annee en facteur 
 PE$ANNEE_txt <- as.factor(PE$ANNEE)
 library(data.table)
 setnames(PE,"ESPECE","CODE")
 PE$CODE <- as.factor(PE$CODE)
 PE$SITE <- as.factor(PE$SITE)
 summary(PE)
-####### annee centre et reduite en numerique ###### 
+####### annee centre et reduite en numerique 
 PE$annee_sc = scale(PE$ANNEE)
 
-###### enlever les especes avec trop peu de données (PE2) ####
+
+###### enlever les especes avec trop peu de données (PE2)
 #creer variable avec le nombre d'occurence de chaque esp
 occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x == 1))
 occ_esp
@@ -34,7 +35,8 @@ PE2 <- PE[!(PE$CODE %in% rare_species),]
 
 
 
-####### autres jdd  #####
+
+####### autres jdd
 library(readxl)
 info_esp <- read_excel("C:/git/Grand_lieu/DATA/info_especes.xlsx",
                  col_names = TRUE)
@@ -48,41 +50,48 @@ meteo <- read_excel("C:/git/Grand_lieu/DATA/meteo_gl_final.xlsx",
 
 ######## ANALYSES JDD COMPLET ####### 
 
+###### PRE TRAITEMENT DU JDD ######
 
-
-###### TEST DE PUISSANCE POUR NOMBRE D OCCURENCES 
-
-library(glmmTMB)#package pour faire glmm
+###### TRI --> enlever les esp trop rares #####
+#Apres avoir fait un test de puissance (voir script dedié), on ne garde que les esp 
+# qui ont + de 50 occurences sur l'ensemble du jeu de donnees 
 
 ###### enlever les especes avec trop peu de données (PE2) ####
 #creer variable avec le nombre d'occurence de chaque esp
-occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x >0))
-occ_esp
-
-
+occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x >0)) ; occ_esp #occurence de chaque esp
+rare_species_50 <- names(occ_esp[occ_esp < 50]) ; rare_species_50# liste des esp rares
 #tapply permet de compter le nombre de fois ou il y a une presence d'oiseaux 
-# Identifier les espèces qui ont moins de 100 observations 
-rare_species_10 <- names(occ_esp[occ_esp < 10])
-rare_species_20 <- names(occ_esp[occ_esp < 20])
-rare_species_50 <- names(occ_esp[occ_esp < 50])
-rare_species_100 <- names(occ_esp[occ_esp < 100])
-rare_species_150 <- names(occ_esp[occ_esp < 150])
-rare_species_200 <- names(occ_esp[occ_esp < 200])
-rare_species_300 <- names(occ_esp[occ_esp < 300])
-rare_species_500 <- names(occ_esp[occ_esp < 500])
-rare_species_600 <- names(occ_esp[occ_esp < 600])
 
 
-# Filtrer le jeu de données pour exclure les espèces rares
-PE2 <- PE[!(PE$CODE %in% rare_species_500),]
-mdp1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE2 ,  family = nbinom2)
-summary(mdp1)
+###### Filtrer le jeu de données pour exclure les espèces rares #####
+PE2 <- PE[!(PE$CODE %in% rare_species_50),]
+head(PE2)
+
+###### correlation entre variables expl #####
+cor.test(elev,forest)#pas de correlation lineaire entre les variables
+#on observe peut etre une correlation, mais pas lineaire
+plot(elev,forest)# tres grande variance 
+lines(lowess(elev,forest))#creer une ligne de tendance avec la fonction lowess
 
 
 
-
-##### Variation d'abondance totale d'oiseaux #######
 library(glmmTMB)#package pour faire glmm
+
+# summary(modb2)
+# res.dev<-deviance(modb2)
+# nul.dev<-deviance(glm(pres~1,binomial,data1))
+# # le pourcentage de déviance expliquée (%DEV) est alors:
+# (nul.dev-res.dev)/nul.dev*100 
+
+# %DEV, c'est une (sous-)estimation.
+# library(rsq)
+# rsq(modb6) 
+
+
+
+##### VARIATION D'ABONDANCE D'OISEAUX TOTALE #######
+library(glmmTMB)#package pour faire glmm
+###### annee en facteur ######
 md1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE ,  family = nbinom2, ziformula = ~1)
 #glmmTMB(var rep ~ var expl eff fixe + (1| var expl eff aleatoire), data = data, family = type de distribution)
 #effet aleatoire des esp car 2 points d'une meme espece ne sont pas aleatoire 
@@ -101,6 +110,10 @@ plot(simulationOutput)
 
 confint(md1)#donne les intervalles de confiance avec l'estimate 
 
+# et puis ne pas oublier un modèle nul, qui servira à évaluer la performance absolue du modèle sélectionné
+modb0<-glm(pres~1, family=binomial, data=data1)
+summary(modb0)
+
 # GRAPHIQUES 
 library(ggplot2)
 library(ggeffects)
@@ -114,7 +127,8 @@ ggplot(data = ggpred, aes(x= x)) +
   geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) +
   labs(y="Variation d'abondance",x="Années", title = "Variation d'abondance de l'ensemble des oiseaux en fonction des annees", color = "Legende")
   #geom_pointrange(aes(x = x ,y = predicted,  ymin = conf.low , ymax= conf.high)) # autre methode pour errorbar 
-  
+
+##### annee en numerique #####
 
 ######## ANALYSES ESP/ESP ########  
 
@@ -125,18 +139,38 @@ library(ggeffects)#graph
 
 
 #espece par espece 
-#ss-jeu de donnees 
-
 
 
 
 
 #Phragmite des joncs 
+#ss-jeu de donnees 
 ACRSCH_data <- subset(PE2, CODE == "ACRSCH")
+#### ENLEVER LES SITES VIDES
+occ_site <- tapply(ACRSCH_data$ABONDANCE, ACRSCH_data$SITE, function(x) sum(x > 0))
+hist(tapply(ACRSCH_data$ABONDANCE, ACRSCH_data$SITE, function(x) sum(x > 0))) 
+site_vide <- names(occ_site[occ_site < 1])
+site_vide
+# Filtrer le jeu de données pour exclure les sites vides 
+ACRSCH_data2<- ACRSCH_data[!(ACRSCH_data$SITE %in% site_vide),]
+#### ENLEVER LES ANNEES VIDES
+occ_year <- tapply(ACRSCH_data$ABONDANCE, ACRSCH_data$ANNEE_txt, function(x) sum(x > 0))
+occ_year
+# Filtrer le jeu de données pour exclure annees de debut vide
+ACRSCH_data3<- ACRSCH_data2[!(ACRSCH_data2$SITE %in% YEAR_vide),]
+ifelse(occ_year[2002]== 0, ACRSCH_data2 == ACRSCH_data2[!(ACRSCH_data2$ANNEE_txt == "2002"),])
+#j'ai tente mais faudra prendre une esp qui n'a pas toutes les annees
+#enlever les annees ou l'esp n'est pas presente et les lieux ou elle ne l'ai pas nn plus 
+
+
+
+
+
+
 # Variation d'abondance : Modèle linéaire mixte avec glmmTMB pour chaque espèce
-md_va_ACRSCH <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = ACRSCH_data, family = nbinom2, ziformula = ~1)
+md_va_ACRSCH <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = ACRSCH_data2, family = nbinom2, ziformula = ~1)
 summary(md_va_ACRSCH)
-#Residus 
+#Residus + (1|SITE) 
 library(DHARMa)
 simulationOutput <- simulateResiduals(fittedModel = md_va_ACRSCH, plot = T)#met du temps 
 testZeroInflation(simulationOutput)
@@ -154,13 +188,18 @@ ref <- gg2$predicted[1]
 d_pred <- data.frame(annee = gg2$x,abondance_var = gg2$predicted / ref, ICinf = gg2$conf.low/ref , ICsup = gg2$conf.high/ref)
 print(d_pred)
 plot(d_pred$annee, d_pred$abondance_var, xlab = "Annee", ylab = "abondance")
+
+
+
+
 #tendance de l'espece : Modèle linéaire mixte avec glmmTMB
-md_td_ACRSCH <- glmmTMB(ABONDANCE ~ annee_sc + (1|SITE) , data = ACRSCH_data, family = nbinom2)
+md_td_ACRSCH <- glmmTMB(ABONDANCE ~ annee_sc + (1|SITE) , data = ACRSCH_data, family = nbinom2, ziformula = ~1)
 summary(md_td_ACRSCH)# resume du modèle
 #Residus 
 simulationOutput <- simulateResiduals(fittedModel = md_td_ACRSCH, plot = T)#met du temps 
 testZeroInflation(simulationOutput)
 #Graphique de la tendance 
+confint(md_td_ACRSCH)
 gg3<- ggpredict(md_td_ACRSCH,terms = c("annee_sc"))
 plot_var_ab <- ggplot(gg3, aes(x = x, y = predicted)) +
   #geom_point() +
@@ -175,12 +214,18 @@ print(d_pred)
 plot(d_pred)
 d_pred$annee_orig <- (d_pred$annee * sd(PE$ANNEE)) + mean(PE$ANNEE)
 
+
+#dernière etape, aprs la selection du meilleur modele 
+plot(md_td_ACRSCH, add.smooth=F, which=1, cex=1.6, cex.lab=1.5)  # résidus vs valeurs prédites
+res5<-residuals(md_td_ACRSCH)
+hist(res5, nclass=20, main="", xlab="Residuals", ylab="Occurrence", cex.lab=1.5,col='grey') # distribution des résidus
+
 library(gridExtra)
 # Combinaison de la table de sortie et du graphique en une seule image
 #grid.arrange(plot_var_ab, tableGrob(output_table), ncol = 2, widths = c(2, 1))
 
 
-
+#GRAPHIQUES
 
 
 gg2<- ggpredict(mde,terms = c("ANNEE_txt"))
@@ -199,7 +244,45 @@ ggplot(gg2, aes(x = x, )) +
 
 
 
+
+
+
+
+
+
+
+
 ###### Boucle pour faire toutes les especes en meme temps  #####
+
+
+
+
+####################
+tri_jdd_esp <- function(x ,d , affiche = TRUE){
+  
+  #Garder seulement l'espece cible
+  esp_data <- subset(d, CODE == x) #d le jdd complet et x le nom de l'espece
+  
+  #Extraire les sites ou l'esp n'est jamais presente : 
+  occ_site <- tapply(esp_data$ABONDANCE, esp_data$SITE, function(x) sum(x > 0))
+  site_vide <- names(occ_site[occ_site < 1])
+  
+  # Filtrer le jeu de données pour exclure les points d'ecoute vide
+  esp_data_sanssite <- esp_data[!(esp_data$SITE %in% site_vide),]
+  
+  if(affiche){
+    print(head(esp_data_sanssite))
+  }
+  return(esp_data_sanssite)
+}
+esp_data_sanssite
+
+
+tri_jdd_esp(x = "ACRSCH", d = PE2)
+
+########################
+
+
 
 for (i in unique(PE2$CODE)) {
   # Créer un sous-ensemble de données pour chaque espèce
