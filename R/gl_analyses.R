@@ -364,6 +364,7 @@ jdd_csi$csi <- jdd_csi$vi_abssi/jdd_csi$ABONDANCE
 jdd_csi$annee_num <- as.numeric(as.character(jdd_csi$ANNEE_txt))
 plot(jdd_csi$csi~jdd_csi$annee_num)
 jdd_csi$csi <- ifelse(jdd_csi$csi == "NaN", 0 ,jdd_csi$csi)#enlever NaN
+summary(jdd_csi$csi)
 #centrer reduire
 jdd_csi$annee_sc = scale(jdd_csi$annee_num)
 jdd_csi$csi_sc = scale(jdd_csi$csi)
@@ -372,7 +373,7 @@ jdd_csi$csi_sc = scale(jdd_csi$csi)
 library(data.table)
 setnames(jdd_csi,"ABONDANCE","ABONDANCE_PE")
 
-#ANALYSES DU CSI, la selection d'habitat par la communaute
+#ANALYSES DU CSI, generaliste/specialiste par la communaute
 
 #Correlation 
 library(PerformanceAnalytics)
@@ -390,15 +391,53 @@ summary(md_csi)
 #est ce que le csi evolue en fonction du temps ? 
 md_test<- glmmTMB(csi ~ annee_sc + ABONDANCE_PE + (annee_sc:ABONDANCE_PE) + (1|SITE),data = jdd_csi ,  family = gaussian, na.action = na.exclude)
 summary(md_test)
-md_test2<- glmmTMB(csi ~ annee_sc + ABONDANCE_PE + (annee_sc:ABONDANCE_PE) + (1|SITE),data = jdd_csi,
-                  family = nbinom2, na.action = na.exclude)
+md_test2<- glmmTMB(csi ~ annee_sc + ABONDANCE_PE  + (1|SITE),data = jdd_csi,
+                  family = gaussian, na.action = na.exclude)
+md_test3<- glmmTMB(csi ~ annee_sc  + (1|SITE),data = jdd_csi,
+                   family = gaussian, na.action = na.exclude)
 
 summary(md_test2)
 
 #Analyses des résidus : 
 library(DHARMa)
-simulationOutput <- simulateResiduals(fittedModel = md_test, plot = T)#met du temps 
+simulationOutput <- simulateResiduals(fittedModel = md_test3, plot = T)#met du temps 
 testZeroInflation(simulationOutput)#la ligne rouge indique la proportion attendue de zéros dans la distribution des résidus
+
+
+#On va un peu trainer sur cette variable pour mieux comprendre ce qu'il en est #graphiquement 
+library(ggplot2)
+library(ggthemes)
+#Variation de certains point d'écoute en fonction du temps 
+point_csl <- subset(jdd_csi, SITE == "Communal de Saint-Lumine")
+point_bl <- subset(jdd_csi, SITE == "Blourie")
+
+ggplot() +
+  geom_line(data = point_csl,aes(x = annee_num, y = csi, color = "csl")) +
+  geom_line(data = point_bl,aes(x = annee_num, y = csi,color = "bl" ) ) +
+  #scale_color_manual(values = c("blue", "red")) +
+  #scale_y_continuous(name = "TM",limits = c(min(n_eau$TM), max(n_eau$TM)))+
+  labs(x = "année",y = "csi",
+       title = "Variation du csi pour les points d'ecoute de blourie et de communal de st lumine", color = "Legende :") +
+  theme_bw() 
+#la fonction theme() permet de changer l'apparence du graphique, avec size pour la police en encore family 
+
+
+#Superposition de toutes les PE (119 courbes)
+ggplot(jdd_csi, aes(x = annee_num, y = csi, group = as.factor(SITE) )) +
+  geom_line() +# facet_wrap(.~annee,scales = "free_y")
+  labs(x = "Annee", y = "csi", title = "variation du csi pour chaque PE", color = "Légende :") +
+  #scale_color_manual(values = rev(rainbow(length(unique(jdd_csi$SITE))))) +
+  theme_bw()
+# on peut mettre des couleurs differentes en faisant #as.factor(SITE) #, color =  blues9
+
+
+
+
+
+
+
+
+
 
 #FAIRE lE CTI 
 
@@ -458,6 +497,29 @@ smd_hab <- summary(md_hab) ; print(smd_hab)
 # ?glmmTMB
 PE_hab <- merge(PE2, pod_site,all.x = TRUE, by.x = "SITE", by.y = "Site" )
 esp_hab <- merge()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ######## ANALYSES ESP/ESP ########  
 
 library(glmmTMB)#package pour faire glmm
