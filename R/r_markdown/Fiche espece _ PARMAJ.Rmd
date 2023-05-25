@@ -49,13 +49,17 @@ hist(tapply(PARMAJ_data$ABONDANCE, PARMAJ_data$SITE, function(x) sum(x > 0)))
 site_vide <- names(occ_site[occ_site < 1])
 site_vide#liste des sites avec 0 occurence de PARMAJ 
 PARMAJ_data2<- PARMAJ_data[!(PARMAJ_data$SITE %in% site_vide),]
-# #### ENLEVER LES ANNEES VIDES
-# occ_year <- tapply(PARMAJ_data$ABONDANCE, PARMAJ_data$ANNEE_txt, function(x) sum(x > 0))
-# occ_year
-# # Filtrer le jeu de données pour exclure annees de debut vide
-# PARMAJ_data3<- PARMAJ_data2[!(PARMAJ_data2$SITE %in% YEAR_vide),]
-# ifelse(occ_year[2002]== 0, PARMAJ_data2 == PARMAJ_data2[!(PARMAJ_data2$ANNEE_txt == "2002"),])
-#j'ai tente mais faudra prendre une esp qui n'a pas toutes les annees
+occ_year <- aggregate(ABONDANCE~ ANNEE_txt, data = CUCCAN_data2, FUN = sum)
+year_delete <- numeric()
+
+for (i in c(1:(length(occ_year)))) {
+  if (occ_year$ABONDANCE[i] ==0) {
+    year_delete <- c(year_delete,occ_year$ANNEE_txt[i])
+  } else {break}}
+
+year_delete#liste des sites avec 0 occurence de CUCCAN 
+CUCCAN_data3<- CUCCAN_data2[!(CUCCAN_data2$ANNEE_txt %in% year_delete),] 
+#j'espere que cela fonctionne, il faut que je trouve une espece adequate 
 ```
 
 ## Les analyses :

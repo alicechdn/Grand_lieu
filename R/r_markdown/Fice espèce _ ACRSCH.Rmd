@@ -37,6 +37,8 @@ library(data.table)
 setnames(PE,"ESPECE","CODE")
 PE$CODE <- as.factor(PE$CODE)
 PE$SITE <- as.factor(PE$SITE)
+PE$SITE <- gsub("[éèêë]", "e", PE$SITE, ignore.case = TRUE)
+PE$SITE <- gsub("[àâ]", "a", PE$SITE, ignore.case = TRUE)
 summary(PE)
 ####### annee centre et reduite en numerique 
 PE$annee_sc = scale(PE$ANNEE)
@@ -53,9 +55,9 @@ hist(tapply(ACRSCH_data$ABONDANCE, ACRSCH_data$SITE, function(x) sum(x > 0)))
 site_vide <- names(occ_site[occ_site < 1])
 site_vide#liste des sites avec 0 occurence de ACRSCH 
 ACRSCH_data2<- ACRSCH_data[!(ACRSCH_data$SITE %in% site_vide),]
-# #### ENLEVER LES ANNEES VIDES
 
-occ_year <- aggregate(ABONDANCE~ ANNEE_txt, data = CUCCAN_data2, FUN = sum)
+##### ENLEVER LES PREMIERES ANNEES VIDES
+occ_year <- aggregate(ABONDANCE~ ANNEE_txt, data = ACRSCH_data2, FUN = sum)
 year_delete <- numeric()
 
 for (i in c(1:(length(occ_year)))) {
@@ -63,11 +65,30 @@ for (i in c(1:(length(occ_year)))) {
     year_delete <- c(year_delete,occ_year$ANNEE_txt[i])
   } else {break}}
 
-year_delete#liste des sites avec 0 occurence de CUCCAN 
-CUCCAN_data3<- CUCCAN_data2[!(CUCCAN_data2$ANNEE_txt %in% year_delete),] 
-#j'espere que cela fonctionne, il faut que je trouve une espece adequate # #### ENLEVER LES ANNEES VIDES
+year_delete#liste des annees avec 0 occurence de ACRSCH 
+ACRSCH_data3<- ACRSCH_data2[!(ACRSCH_data2$ANNEE_txt %in% year_delete),] 
+
 
 ```
+### JDD complementaires 
+
+``` {r}
+library(readxl)
+pod_site <- read_excel("C:/git/Grand_lieu/DATA/pod_site3.xlsx",
+                 col_names = TRUE)
+
+ACRSCH_data_hab <- merge(ACRSCH_data3, pod_site,all.x = TRUE, by.x = "SITE", by.y = "Site" )
+ACRSCH_data_hab$derangement <- as.factor(ACRSCH_data_hab$derangement)
+ACRSCH_data_hab$protec <- as.factor(ACRSCH_data_hab$protec)
+ACRSCH_data_hab$arbres <- as.factor(ACRSCH_data_hab$arbres)
+ACRSCH_data_hab$buissons <- as.factor(ACRSCH_data_hab$buissons)
+ACRSCH_data_hab$aqua <- as.factor(ACRSCH_data_hab$aqua)
+ACRSCH_data_hab$urbain <- as.factor(ACRSCH_data_hab$urbain)
+ACRSCH_data_hab$ZSC <- as.factor(ACRSCH_data_hab$ZSC)
+ACRSCH_data_hab$SITE <- as.factor(ACRSCH_data_hab$SITE)
+summary(ACRSCH_data_hab)
+```
+
 
 ## Les analyses :
 
@@ -98,7 +119,7 @@ simulationOutput <- simulateResiduals(fittedModel = md_va_ACRSCH, plot = T)#met 
 testZeroInflation(simulationOutput)
 
 
-# Graphique d'abondance en fonction de l'année 
+# Graphique de variation d'abondance en fonction de l'année 
 gg2<- ggpredict(md_va_ACRSCH,terms = c("ANNEE_txt"))
 plot_var_ab <- ggplot(gg2, aes(x = x, y = predicted)) +
   geom_point() +
@@ -204,12 +225,66 @@ ylab = "Nombre d'individus", main = "Graphique du nombre d'indiv en
 fonction du temps")
 ```
 
-4)  Fusionner les graphiques ?
+## 4)  Modele avec habitat : 
 
 ```{r pressure, echo=FALSE}
 
-library(gridExtra)
-# Combinaison de la table de sortie et du graphique en une seule image
-#grid.arrange(plot_var_ab, tableGrob(output_table), ncol = 2, widths = c(2, 1))
+
+md_hab_ACRSCH <- glmmTMB(ABONDANCE ~ annee_sc + arbres + buissons + aqua + urbain + derangement + ZSC + ZI + (1|SITE) , data = ACRSCH_data_hab, family = nbinom2, ziformula = ~1)
+summary(md_hab_ACRSCH)# resume du modèle
+
+#Selection du modele 
+#On enleve le derangement : 
+
+md_hab_ACRSCH_2 <- glmmTMB(ABONDANCE ~ annee_sc + arbres + buissons + aqua + urbain + ZSC + ZI + (1|SITE) , data = ACRSCH_data_hab, family = nbinom2, ziformula = ~1)
+summary(md_hab_ACRSCH_2)
+
+#Selection du modele 
+#On enleve l'urbain : 
+
+md_hab_ACRSCH_3 <- glmmTMB(ABONDANCE ~ annee_sc + arbres + buissons + aqua + ZSC + ZI + (1|SITE) , data = ACRSCH_data_hab, family = nbinom2, ziformula = ~1)
+summary(md_hab_ACRSCH_3)
+
+#Selection du modele 
+#On enleve ZSC: 
+
+md_hab_ACRSCH_4 <- glmmTMB(ABONDANCE ~ annee_sc + arbres + buissons + aqua  + ZI + (1|SITE) , data = ACRSCH_data_hab, family = nbinom2, ziformula = ~1)
+summary(md_hab_ACRSCH_4)
+
+#Selection du modele 
+#On enleve aqua: 
+
+md_hab_ACRSCH_5 <- glmmTMB(ABONDANCE ~ annee_sc + arbres + buissons  + ZI + (1|SITE) , data = ACRSCH_data_hab, family = nbinom2, ziformula = ~1)
+summary(md_hab_ACRSCH_5)
+
+#Faire les AIC / compare performance 
+```
+5) Graphique complet 
+``` {r}
+
+
+
+library(data.table)
+decay <- function(t, r,i) exp(i)*exp(r*t)
+lastyear <- max(ACRSCH_data3$annee_sc)
+firstyear <- min(ACRSCH_data3$annee_sc)
+ddecay <- setDT(data.frame(year=(seq(from = firstyear,to=lastyear,by=0.1)),
+                           txR=d_pred$annee,intercept=d_pred$abondance_var))
+
+
+ddecay[,val:=decay(year,txR,intercept)]
+
+
+# Graphique de variation d'abondance en fonction de l'année 
+gg2<- ggpredict(md_va_ACRSCH,terms = c("ANNEE_txt"))
+
+plot_var_ab <- ggplot(gg2, aes(x = x, y = predicted)) +
+  geom_point() +
+  geom_line(aes(group = 1)) +
+ #geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=0.1) + 
+  labs(x = "Année", y = "Abondance", title = paste("Variation d'abondance de phragmite des joncs au fil du temps"))
+plot_var_ab <- plot_var_ab + geom_line(data = ddecay)
+print(plot_var_ab)
+
 
 ```

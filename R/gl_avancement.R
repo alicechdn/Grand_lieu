@@ -356,7 +356,7 @@ dim(meteo_gl)
 meteo_gl$RR <- as.numeric(meteo_gl$RR) #mettre en numerique ce dont on a besoin 
 meteo_gl$Date_m <- as.numeric(meteo_gl$Date_m)
 #Supprimer la valeur de NA ? Ici on ne va pas le faire (je garde le code au cas ou)
-#meteo_gl <- meteo_gl[!is.na(meteo_gl$RR),]#drop_na(nom_de_la_colonne) #autre facon  
+#drop_na(nom_de_la_colonne) #autre facon  
 
 
 #Mise en forme du jdd meteo: --> valeur annuelle 

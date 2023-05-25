@@ -1,5 +1,5 @@
 ---
-title: "Fiche espèce - CARCHL"
+title: "Fiche espèce - Phragmite des joncs"
 author: "Alice"
 date: "17/04/2023"
 output: html_document
@@ -12,15 +12,18 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Fiche espèce : CARCHL
+# [Fiche espèce]{.ul} 
 
-```{r cars}
+Pour chaque espèce présente dans le jeu de données et ayant assez
+d'occurences (\>50) pour permettre une analyse de tendance, une fiche
+espèce est faite pour visualiser la situation dans laquelle se trouve
+cette espèce.
 
-```
+Elle comprend des graphiques de données brutes, des modèles statistiques de régression linéaires.
 
 ## Pré-traitement du jdd
 
-1)  Pré-traitement de PE
+### 1) Pré-traitement de PE
 
 ```{r cars}
 ####### CHARGEMENT ET MISE EN FORME DU JDD #####
@@ -33,24 +36,27 @@ library(data.table)
 setnames(PE,"ESPECE","CODE")
 PE$CODE <- as.factor(PE$CODE)
 PE$SITE <- as.factor(PE$SITE)
-#summary(PE)
+PE$SITE <- gsub("[éèêë]", "e", PE$SITE, ignore.case = TRUE)
+PE$SITE <- gsub("[àâ]", "a", PE$SITE, ignore.case = TRUE)
+summary(PE)
 ####### annee centre et reduite en numerique 
 PE$annee_sc = scale(PE$ANNEE)
 ```
 
-2)  Pré-traitement de CARCHL_data
+### 2) Pré-traitement du sous jeu de données 
 
 ```{r}
 
-CARCHL_data <- subset(PE, CODE == "CARCHL")
+esp_data <- subset(PE, CODE == x)
 #### ENLEVER LES SITES VIDES
-occ_site <- tapply(CARCHL_data$ABONDANCE, CARCHL_data$SITE, function(x) sum(x > 0))
-hist(tapply(CARCHL_data$ABONDANCE, CARCHL_data$SITE, function(x) sum(x > 0))) 
+occ_site <- tapply(esp_data$ABONDANCE, esp_data$SITE, function(x) sum(x > 0))
+hist(tapply(esp_data$ABONDANCE, esp_data$SITE, function(x) sum(x > 0))) 
 site_vide <- names(occ_site[occ_site < 1])
-site_vide#liste des sites avec 0 occurence de CARCHL 
-CARCHL_data2<- CARCHL_data[!(CARCHL_data$SITE %in% site_vide),]
+site_vide#liste des sites avec 0 occurence de ACRSCH 
+esp_data2<- esp_data[!(esp_data$SITE %in% site_vide),]
 
-occ_year <- aggregate(ABONDANCE~ ANNEE_txt, data = CUCCAN_data2, FUN = sum)
+##### ENLEVER LES PREMIERES ANNEES VIDES
+occ_year <- aggregate(ABONDANCE~ ANNEE_txt, data = esp_data2, FUN = sum)
 year_delete <- numeric()
 
 for (i in c(1:(length(occ_year)))) {
@@ -58,14 +64,34 @@ for (i in c(1:(length(occ_year)))) {
     year_delete <- c(year_delete,occ_year$ANNEE_txt[i])
   } else {break}}
 
-year_delete#liste des sites avec 0 occurence de CUCCAN 
-CUCCAN_data3<- CUCCAN_data2[!(CUCCAN_data2$ANNEE_txt %in% year_delete),] 
-#j'espere que cela fonctionne, il faut que je trouve une espece adequate 
+year_delete#liste des annees avec 0 occurence de ACRSCH 
+esp_data3<- esp_data2[!(esp_data2$ANNEE_txt %in% year_delete),] 
+
+
 ```
+### JDD complementaires 
+
+``` {r}
+library(readxl)
+pod_site <- read_excel("C:/git/Grand_lieu/DATA/pod_site3.xlsx",
+                 col_names = TRUE)
+
+esp_data_hab <- merge(esp_data3, pod_site,all.x = TRUE, by.x = "SITE", by.y = "Site" )
+esp_data_hab$derangement <- as.factor(esp_data_hab$derangement)
+esp_data_hab$protec <- as.factor(esp_data_hab$protec)
+esp_data_hab$arbres <- as.factor(esp_data_hab$arbres)
+esp_data_hab$buissons <- as.factor(esp_data_hab$buissons)
+esp_data_hab$aqua <- as.factor(esp_data_hab$aqua)
+esp_data_hab$urbain <- as.factor(esp_data_hab$urbain)
+esp_data_hab$ZSC <- as.factor(esp_data_hab$ZSC)
+esp_data_hab$SITE <- as.factor(esp_data_hab$SITE)
+summary(esp_data_hab)
+```
+
 
 ## Les analyses :
 
-1)  [**La variation d'abondance**]{.ul}
+## 1) La variation d'abondance
 
 Pour visualiser la variation d'abondance de phragmite des joncs, on
 compare l'abondance en fonction de l'année. L'année est mise en facteur.
@@ -79,21 +105,21 @@ library(glmmTMB)#package pour faire glmm
 library(DHARMa)#residus
 library(ggplot2)#graph
 library(ggeffects)#graph
-
+l;
 
 # Variation d'abondance : Modèle linéaire mixte avec glmmTMB pour chaque espèce
-md_va_CARCHL <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = CARCHL_data2, family = nbinom2, ziformula = ~1)
-summary(md_va_CARCHL)
+md_va_esp <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) , data = esp_data2, family = nbinom2, ziformula = ~1)
+summary(md_va_esp)
 
 
 #Residus 
 library(DHARMa)
-simulationOutput <- simulateResiduals(fittedModel = md_va_CARCHL, plot = T)#met du temps 
+simulationOutput <- simulateResiduals(fittedModel = md_va_esp, plot = T)#met du temps 
 testZeroInflation(simulationOutput)
 
 
-# Graphique d'abondance en fonction de l'année 
-gg2<- ggpredict(md_va_CARCHL,terms = c("ANNEE_txt"))
+#Graphique de variation d'abondance en fonction de l'année 
+gg2<- ggpredict(md_va_esp,terms = c("ANNEE_txt"))
 plot_var_ab <- ggplot(gg2, aes(x = x, y = predicted)) +
   geom_point() +
   geom_line(aes(group = 1)) +
@@ -109,11 +135,7 @@ d_pred <- data.frame(annee = gg2$x,abondance_var = gg2$predicted / ref, ICinf = 
 print(d_pred)
 plot(d_pred$annee, d_pred$abondance_var, xlab = "Annee", ylab = "abondance")
 
-
-
 ```
-
-Que ce passe-t-il sur les années 2016:2018 ?
 
 \#glmmTMB(var rep \~ var expl eff fixe + (1\| var expl eff aleatoire),
 data = data, family = type de distribution) \#effet aleatoire des esp
@@ -124,30 +146,30 @@ negative binomiale est une distribution de comptage, utilise en cas de
 surdispersion \#il en existe 2, nbinom1 et nbinom2 \#nbinom2 plus
 precise )
 
-2)  [**La tendance de l'espèce**]{.ul}
+## 2) La tendance de l'espèce
 
-```{r tend}
+```{r tend, echo=FALSE}
 
 #tendance de l'espece : Modèle linéaire mixte avec glmmTMB
-md_td_CARCHL <- glmmTMB(ABONDANCE ~ annee_sc + (1|SITE) , data = CARCHL_data, family = nbinom2, ziformula = ~1)
-summary(md_td_CARCHL)# resume du modèle
+md_td_esp <- glmmTMB(ABONDANCE ~ annee_sc + (1|SITE) , data = esp_data, family = nbinom2, ziformula = ~1)
+summary(md_td_esp)# resume du modèle
 
 
 #Residus 
-simulationOutput <- simulateResiduals(fittedModel = md_td_CARCHL, plot = T)#met du temps 
+simulationOutput <- simulateResiduals(fittedModel = md_td_esp, plot = T)#met du temps 
 testZeroInflation(simulationOutput)
-res5<-residuals(md_td_CARCHL)
+res5<-residuals(md_td_esp)
 hist(res5, nclass=20, main="", xlab="Residuals", ylab="Occurrence", cex.lab=1.5,col='grey') # distribution des résidus
 
 
 #Graphique de la tendance 
-confint(md_td_CARCHL)
-gg3<- ggpredict(md_td_CARCHL,terms = c("annee_sc"))
+confint(md_td_esp)
+gg3<- ggpredict(md_td_esp,terms = c("annee_sc"))
 plot_var_ab <- ggplot(gg3, aes(x = x, y = predicted)) +
   #geom_point() +
   geom_line(aes(group = 1)) +
   #geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=0.1) + 
-  labs(x = "Année", y = "Abondance", title = paste("Abondance de phragmite des joncs au fil du temps"))
+  labs(x = "Année", y = "Abondance", title = paste("Abondance  au fil du temps"))
 print(plot_var_ab)
 print(gg3)
 ref <- gg3$predicted[1] 
@@ -166,74 +188,54 @@ ggplot(gg2, aes(x = x, )) +
   geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) + 
   labs(x = "Année", y = "Abondance", title = paste("Abondance de phragmite des joncs au fil du temps"))
 
+
 ```
 
-3)  [**Comment évolue la variable habitat ?**]{.ul}
+## 3) Comment évolue la variable habitation ?
 
-```{r hab}
-length(unique(CARCHL_data2$SITE)) #Nombre de sites où elle a été vu sum(CARCHL_data2$ABONDANCE)
-#Nombre d'individu de l'espece entendu au total :
+```{r hab, echo=FALSE}
+length(unique(esp_data2$SITE)) #Nombre de sites où elle a été vu 
 
 list_x <- as.factor(c(2002:2021))
 
-for (x in list_x) { CARCHL_data_new <-
-CARCHL_data2[(CARCHL_data2$ANNEE_txt == x),] 
-ar <-tapply(CARCHL_data_new$ABONDANCE, CARCHL_data_new$SITE, function(a)
-sum(a >= 1))
+for (x in list_x) {
+  esp_data_new <- esp_data2[(esp_data2$ANNEE_txt == x),]
+  ar <- tapply(esp_data_new$ABONDANCE, esp_data_new$SITE, function(a) sum(a >= 1))
+  ar[is.na(ar)] <- 0
+  presence <- names(ar[ar > 0]) ; 
+  nb <- length(presence)
+  tab_x <- data.frame(x,nb)
+    if (x == list_x[1]) {
+  tab_occ_site <- tab_x
+} else {
+  tab_occ_site <- rbind(tab_occ_site, tab_x)
+}
 
-ar[is.na(ar)] <- 0
-presence <- names(ar[ar > 0]) 
-nb<- length(presence) 
-nb_indiv <- sum(CARCHL_data_new$ABONDANCE) 
-
-tab_x<- data.frame(x,nb, nb_indiv) 
-
-if (x == list_x[1]) {
-  tab_occ_site<-tab_x } 
-else { tab_occ_site <- rbind(tab_occ_site, tab_x) }
-
-print(tab_occ_site) }
+  
+print(tab_occ_site)
+}  
 
 plot(tab_occ_site$nb ~tab_occ_site$x , type = "b", xlab = "Annee", ylab
-= "Nombre de points d'ecoute", main = "Graphique du nombre de PE en fonction du temps")
+= "Nombre de points d'ecoute", main = "Graphique du nombre de PE du
+Phragmite des joncs en fonction du temps")
 
 plot(tab_occ_site$nb_indiv ~tab_occ_site$x , type = "b", xlab = "Annee",
 ylab = "Nombre d'individus", main = "Graphique du nombre d'indiv en
 fonction du temps")
 ```
 
-Biblio sur le verdier d'europe : 
+## 4)  Modele avec habitat : 
 
-Les oiseaux d'europe - lars jonsson ; edition Nathan (bibliothèque bureau SNPN)
-"Oiseau commun dans les milieux ouverts des parx urbain et les grands jardins, zones agricoles entrecoupées de haies" 
-"granivore, sédentaire en europe de l'ouest". 
+```{r pressure, echo=FALSE}
+library(data.table)
+decay <- function(t, r,i) exp(i)*exp(r*t)
 
-Liste rouge des especes - UICN : 
+lastyear <- max(d$year)
+firstyear <- min(d$year)
+ddecay <- setDT(data.frame(year=(seq(from = firstyear,to=lastyear,by=0.1)),
+                           txR=coefannee,intercept=intercept))
 
-classé vulnérable en france, LC dans le monde 
-déclin causé par les chgmts de pratiques agricoles ? 
+ddecay[,val:=decay(yeart,txR,intercept)]
 
-rapport d'évaluation des especes nicheuses de france - UICN : 
-Principales pressions : dégradation de l'habitat (changement des pratiques agricoles, diminutions des espaces herbeux naturels, fauchauge systématique des bords de route, banalisation de la flore, herbicides, disparition des ressources alimentaires en graines l'hiver)
-Principaux habitats : Milieux ruraux hétérogènes 
-Chiffre STOC : réduction de la population supérieure à 30% sur 12 ans. 
-
-
-
-
-
-
-
-
-
-
-fzesfez
-
-
-regege
-
-
-
-ergergr
-
-
+gg <- gg + geom_line(data = ddecay)
+```
