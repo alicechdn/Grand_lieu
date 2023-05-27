@@ -302,6 +302,9 @@ jdd_ssi <- merge(PE2, select_ssi, by.x = "CODE", by.y = "ESPECE")
 esp_data_ssi <- aggregate(ABONDANCE ~ CODE, data = jdd_ssi, FUN = sum)
 esp_data_ssi2 <- merge(esp_data_ssi, select_ssi, by.x = "CODE", by.y = "ESPECE")
 
+#centrerreduire 
+jdd_ssi$ssi_sc = scale(jdd_ssi$ssi)
+jdd_ssi$sti_sc = scale(jdd_ssi$sti)
 
 summary(jdd_ssi)
 summary(select_ssi)
@@ -321,9 +324,7 @@ plot(jdd_ssi$ABONDANCE~ jdd_ssi$annee_sc)
 table(select_ssi$ssi)
 table(select_ssi$sti)
 
-#centrerreduire 
-jdd_ssi$ssi_sc = scale(jdd_ssi$ssi)
-jdd_ssi$sti_sc = scale(jdd_ssi$sti)
+
 
 #Analyses : 
 library(glmmTMB)
@@ -428,7 +429,7 @@ ggplot(jdd_csi, aes(x = annee_num, y = csi, group = as.factor(SITE) )) +
   labs(x = "Annee", y = "csi", title = "variation du csi pour chaque PE", color = "Légende :") +
   #scale_color_manual(values = rev(rainbow(length(unique(jdd_csi$SITE))))) +
   theme_bw()
-# on peut mettre des couleurs differentes en faisant #as.factor(SITE) #, color =  blues9
+# on peut mettre des couleurs differentes en faisant #as.factor(SITE) mais legendes prennent trop de place #, color =  blues9
 
 
 
@@ -458,7 +459,82 @@ jdd_cti$cti <- ifelse(jdd_cti$cti == "NaN", 0 ,jdd_cti$cti)
 #--> scale annee, cti 
 jdd_cti$annee_sc = scale(jdd_cti$annee_num)
 jdd_cti$cti_sc = scale(jdd_cti$cti)
-#--> faire les modèles de communauté 
+
+#changer noms incoherent 
+library(data.table)
+setnames(jdd_cti,"ABONDANCE","ABONDANCE_PE")
+
+#ANALYSES DU CTI, especes climat chaud/ climat froid 
+
+#Correlation 
+library(PerformanceAnalytics)
+Z<-cbind(jdd_cti$cti, jdd_cti$ABONDANCE_PE, jdd_cti$vi_absti )
+colnames(Z)<-c( "cti"," somme abondance par PE", " vi, somme ab fois sti")
+chart.Correlation(Z,histogram = TRUE)
+
+#modele
+library(glmmTMB)
+md_cti_complet<- glmmTMB(ABONDANCE_PE ~ annee_sc + cti_sc + (annee_sc:cti_sc) + (1|SITE),data = jdd_cti ,  family = gaussian, na.action = na.exclude)
+md_cti<- glmmTMB(ABONDANCE_PE ~ annee_sc + cti_sc + (1|SITE),data = jdd_cti ,  family = gaussian, na.action = na.exclude)
+summary(md_cti_complet)
+summary(md_cti)
+
+
+plot(jdd_cti$ABONDANCE_PE~jdd_cti$cti)
+
+###### et sans les étourneaux ? #####
+
+
+
+jdd_ssi_etour <- subset(jdd_ssi, CODE != "STUVUL")
+
+
+jdd_ssi_etour$vi_absti <- jdd_ssi_etour$ABONDANCE*jdd_ssi_etour$sti
+#je ne peux pas prendre le sti_sc car il a des valeurs négatives 
+#Somme des abondances*sti : 
+numerateur_sti <- aggregate(vi_absti ~ SITE + ANNEE_txt , data = jdd_ssi_etour, sum) 
+#Somme de l'abondance pour chaque site et annee : 
+denominateur_sti <- aggregate(ABONDANCE ~SITE + ANNEE_txt, data = jdd_ssi_etour, sum)
+plot(denominateur_sti$ABONDANCE~denominateur_sti$ANNEE_txt)
+#fusionner les deux jdd temporaires
+jdd_cti_etour <- merge(numerateur_sti,denominateur_sti, by = c("SITE", "ANNEE_txt"))#on peut merge avec 2 colonnes !
+jdd_cti_etour$cti <- jdd_cti_etour$vi_absti/jdd_cti_etour$ABONDANCE
+jdd_cti_etour$annee_num <- as.numeric(as.character(jdd_cti_etour$ANNEE_txt))
+plot(jdd_cti_etour$cti~jdd_cti_etour$annee_num)
+#--> remplacer les NA par 0 
+jdd_cti_etour$cti <- ifelse(jdd_cti_etour$cti == "NaN", 0 ,jdd_cti_etour$cti)
+#--> scale annee, cti 
+jdd_cti_etour$annee_sc = scale(jdd_cti_etour$annee_num)
+jdd_cti_etour$cti_sc = scale(jdd_cti_etour$cti)
+
+#changer noms incoherent 
+library(data.table)
+setnames(jdd_cti_etour,"ABONDANCE","ABONDANCE_PE")
+
+plot(jdd_cti_etour$ABONDANCE_PE~jdd_cti_etour$cti)
+
+#ANALYSES DU CTI, especes climat chaud/ climat froid 
+
+#Correlation 
+library(PerformanceAnalytics)
+Z<-cbind(jdd_cti_etour$cti, jdd_cti_etour$ABONDANCE_PE, jdd_cti_etour$vi_absti )
+colnames(Z)<-c( "cti"," somme abondance par PE", " vi, somme ab fois sti")
+chart.Correlation(Z,histogram = TRUE)
+
+#modele
+library(glmmTMB)
+md_cti_etour<- glmmTMB(ABONDANCE_PE ~ annee_sc + cti_sc + (annee_sc:cti_sc) + (1|SITE),data = jdd_cti_etour ,  family = gaussian, na.action = na.exclude)
+summary(md_cti_etour)
+
+
+#######
+
+
+
+
+
+
+
 
 #### modele avec stri #####
 
@@ -479,6 +555,54 @@ smd_stri <- summary(md_stri) ; print(smd_stri)
 #pas tres pertinent de faire cette analyse alors qu'il y a bcp desp qui n'ont pas de valeur ? 
 
 #faire le ctri, pour voir si la communauté sur chaque PE a évolué ?
+
+
+jdd_stri$vi_abctri <- jdd_stri$ABONDANCE*jdd_stri$stri
+#je ne peux pas prendre le sti_sc car il a des valeurs négatives 
+#Somme des abondances*sti : 
+numerateur_stri <- aggregate(vi_abctri ~ SITE + ANNEE_txt , data = jdd_stri, sum) 
+#Somme de l'abondance pour chaque site et annee : 
+denominateur_stri <- aggregate(ABONDANCE ~SITE + ANNEE_txt, data = jdd_stri, sum)
+plot(denominateur_stri$ABONDANCE~denominateur_stri$ANNEE_txt)
+#fusionner les deux jdd temporaires
+jdd_ctri <- merge(numerateur_stri,denominateur_stri, by = c("SITE", "ANNEE_txt"))#on peut merge avec 2 colonnes !
+jdd_ctri$ctri <- jdd_ctri$vi_abctri/jdd_ctri$ABONDANCE
+jdd_ctri$annee_num <- as.numeric(as.character(jdd_ctri$ANNEE_txt))
+plot(jdd_ctri$ctri~jdd_ctri$annee_num)
+#--> remplacer les NA par 0 
+jdd_ctri$ctri <- ifelse(jdd_ctri$ctri == "NaN", 0 ,jdd_ctri$ctri)
+#--> scale annee, ctri 
+jdd_ctri$annee_sc = scale(jdd_ctri$annee_num)
+jdd_ctri$ctri_sc = scale(jdd_ctri$ctri)
+#changer noms incoherent 
+library(data.table)
+setnames(jdd_ctri,"ABONDANCE","ABONDANCE_PE")
+
+#explorer les donnees 
+summary(jdd_ctri$ctri)
+
+
+
+#Correlation 
+library(PerformanceAnalytics)
+Z<-cbind(jdd_ctri$ctri, jdd_ctri$ABONDANCE_PE, jdd_ctri$vi_abctri )
+colnames(Z)<-c( "ctri"," somme abondance par PE", " vi, somme ab fois sti")
+chart.Correlation(Z,histogram = TRUE)
+
+
+
+
+#modele
+library(glmmTMB)
+md_ctri_complet<- glmmTMB(ABONDANCE_PE ~ annee_sc + ctri_sc + (annee_sc:ctri_sc) + (1|SITE),data = jdd_ctri ,  family = gaussian, na.action = na.exclude)
+md_ctri<- glmmTMB(ABONDANCE_PE ~ annee_sc + ctri_sc + (1|SITE),data = jdd_ctri ,  family = gaussian, na.action = na.exclude)
+summary(md_ctri_complet)
+summary(md_ctri)
+
+#comment expliquer avoir si peu de resultats avec le stri ? est-ce que ce jeu de données represente bien la chaine trophique 
+#j'ai des doutes, bcp insectivores, passereaux ++, peut on vraiment visualiser quelque chose ? 
+#si oui, ça voudrait dire qu'il n'y a pas eu de changement d'équilibre dans la chaine trophique ces dernières années ? 
+
 
 ##### modele habitat simple ##### 
 
