@@ -259,13 +259,18 @@ print(smd_meteo)
 
 
 #garder migration 1 2 et 3 
-select_migr <- subset(info_esp, select = c("ESPECE", "migration_1", "migration_2", "migration_3"))
+select_migr <- subset(info_esp, select = c("ESPECE","NOM_FR_BIRD", "migration_1", "migration_2", "migration_3"))
 jdd_migr <- merge(PE2, select_migr, by.x = "CODE", by.y = "ESPECE")
 summary(jdd_migr)
 jdd_migr$migration_1 <- as.factor(jdd_migr$migration_1)
 jdd_migr$migration_2 <- as.factor(jdd_migr$migration_2)
 jdd_migr$migration_3 <- as.factor(jdd_migr$migration_3)
 #barplot(jdd_migr$ABONDANCE~jdd_migr$migration_2)
+
+#EXPLORATION 
+table(select_migr$migration_1)
+table(select_migr$migration_2)
+table(select_migr$migration_3)
 
 #Analyses : 
 library(glmmTMB)
