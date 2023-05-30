@@ -138,7 +138,7 @@ summary(md_test_indice)
 ##### Les modeles statistiques : #####
 library(glmmTMB)#package pour faire glmm
 #### annee en facteur ######
-md1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE2 ,  family = nbinom2, ziformula = ~1)
+md1 <- glmmTMB(ABONDANCE ~ ANNEE_txt + (1|SITE) + (1|CODE),data = PE2 ,  family = nbinom2)# ziformula = ~1
 smd1 <- summary(md1) ; print(smd1)
 #ANALYSES DES RESIDUS
 library(DHARMa)
@@ -165,6 +165,44 @@ ggplot(data = ggpred, aes(x= x)) +
   geom_errorbar(aes(x = x, ymin = conf.low, ymax = conf.high), width=0.1) +
   labs(y="Variation d'abondance",x="Années", title = "Variation d'abondance de l'ensemble des oiseaux en fonction des annees", color = "Legende")
   #geom_pointrange(aes(x = x ,y = predicted,  ymin = conf.low , ymax= conf.high)) # autre methode pour errorbar 
+
+
+ggpred <- ggpredict(md1,terms = c("ANNEE_txt"))
+print(ggpred)
+plot(ggpred)
+
+#Commencer la série temporelle à 1 
+ref <- ggpred$predicted[1] 
+d_pred <- data.frame(annee = ggpred$x,abondance_var = ggpred$predicted / ref, ICinf = ggpred$conf.low/ref , ICsup = ggpred$conf.high/ref)
+print(d_pred) ; summary(d_pred)
+d_pred$annee <- as.numeric(as.character(d_pred$annee))
+plot(d_pred$abondance_var~d_pred$annee)
+
+write.csv(d_pred, file = "d_pred_ab_totale.csv", row.names = TRUE)
+
+#tester ce code pour le modèle complet 
+library(ggplot2)
+
+# Créer le graphique en utilisant ggplot()
+graph_varab <- ggplot(data = d_pred, aes(x = annee, y = abondance_var)) +
+  geom_line(aes(group = 1)) +# Ligne pour représenter la tendance
+  geom_errorbar(aes( ymin = ICinf, ymax = ICsup), width=0.1, alpha = 0.2) +
+  xlab("Année") +  # Étiquette de l'axe x
+  ylab("Abondance Variable") +  # Étiquette de l'axe y
+  ggtitle("Évolution de l'abondance  au fil du temps")  # Titre du graphique
+
+# Afficher le graphique
+print(graph_varab)
+
+
+
+
+
+
+
+
+
+
 
 #### annee en numerique #####
 
@@ -227,12 +265,17 @@ summary(jdd_migr)
 jdd_migr$migration_1 <- as.factor(jdd_migr$migration_1)
 jdd_migr$migration_2 <- as.factor(jdd_migr$migration_2)
 jdd_migr$migration_3 <- as.factor(jdd_migr$migration_3)
+#barplot(jdd_migr$ABONDANCE~jdd_migr$migration_2)
 
 #Analyses : 
 library(glmmTMB)
-md_migr <- glmmTMB(ABONDANCE ~ annee_sc + migration_2 + (1|SITE) + (1|CODE),data = jdd_migr ,  family = nbinom2)
-smd_migr <- summary(md_migr)
-print(smd_migr)
+#Avec migration 2 
+md_migr <- glmmTMB(ABONDANCE ~ annee_sc + migration_2 + (annee_sc:migration_2)+ (1|SITE) + (1|CODE),data = jdd_migr ,  family = nbinom2)
+smd_migr <- summary(md_migr) ; print(smd_migr)
+#Avec migration 3
+md_migr <- glmmTMB(ABONDANCE ~ annee_sc + migration_3 + (annee_sc:migration_3)+ (1|SITE) + (1|CODE),data = jdd_migr ,  family = nbinom2)
+smd_migr <- summary(md_migr) ; print(smd_migr)
+
 
 #comment faire avec les NA des migrations ? Quelles conclusions tirer de ces resultats ? 
 
@@ -350,7 +393,7 @@ print(smd_ssi)
 
 ##### faire csi, cti ####
 
-#FAIRE LE CSI
+###### FAIRE LE CSI ######
 head(jdd_ssi)
 jdd_ssi$vi_abssi <- jdd_ssi$ABONDANCE*jdd_ssi$ssi
 #je ne peux pas prendre le ssi_sc car il a des valeurs négatives 
@@ -440,7 +483,7 @@ ggplot(jdd_csi, aes(x = annee_num, y = csi, group = as.factor(SITE) )) +
 
 
 
-#FAIRE lE CTI 
+###### FAIRE LE CTI ######
 
 jdd_ssi$vi_absti <- jdd_ssi$ABONDANCE*jdd_ssi$sti
 #je ne peux pas prendre le sti_sc car il a des valeurs négatives 
@@ -481,6 +524,7 @@ summary(md_cti)
 
 
 plot(jdd_cti$ABONDANCE_PE~jdd_cti$cti)
+
 
 ###### et sans les étourneaux ? #####
 
@@ -529,7 +573,14 @@ summary(md_cti_etour)
 
 #######
 
-
+#est ce que le cti evolue en fonction du temps ? 
+library(glmmTMB)
+md_test<- glmmTMB(cti ~ annee_sc + ABONDANCE_PE  + (1|SITE),data = jdd_cti ,  family = gaussian, na.action = na.exclude)
+summary(md_test)
+md_test2<- glmmTMB(csi ~ annee_sc + ABONDANCE_PE  + (1|SITE),data = jdd_csi,
+                   family = gaussian, na.action = na.exclude)
+md_test3<- glmmTMB(csi ~ annee_sc  + (1|SITE),data = jdd_csi,
+                   family = gaussian, na.action = na.exclude)
 
 
 
