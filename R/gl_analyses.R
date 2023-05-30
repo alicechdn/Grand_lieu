@@ -289,14 +289,26 @@ smd_migr <- summary(md_migr) ; print(smd_migr)
 
 #Version simple, on ne garde que diet : 
 #garder diet 
-select_RA <- subset(info_esp, select = c("ESPECE", "Diet"))
+select_RA <- subset(info_esp, select = c("ESPECE","NOM_FR_BIRD", "Diet"))
+select_RA_PE2 <- subset(select_RA, select_RA$ESPECE %in% PE2$CODE)
 jdd_RA <- merge(PE2, select_RA, by.x = "CODE", by.y = "ESPECE")
 summary(jdd_RA)
 jdd_RA$Diet <- as.factor(jdd_RA$Diet)
+
+#exploration 
+hist(table(select_RA_PE2$Diet))
+table(select_RA_PE2$Diet)
+barplot(table(select_RA_PE2$Diet))
 #Analyses : 
 library(glmmTMB)
 md_RA <- glmmTMB(ABONDANCE ~ annee_sc * Diet + (1|SITE) + (1|CODE),data = jdd_RA ,  family = nbinom2)
 smd_RA <- summary(md_RA) ; print(smd_RA)
+
+#Analyses des résidus : 
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = md_RA, plot = T)#met du temps 
+testZeroInflation(simulationOutput)#la ligne rouge indique la proportion attendue de zéros dans la distribution des résidus
+
 
 #Version + detaillee des regimes alimentaires : 
 select_rad <- subset(info_esp, select = c("ESPECE", "e.seeds.nuts.grain", "e.fruits.frugivory" , "e.vegitative", "e.invert", "e.fish", "e.v.sm.mammals", "e.lg.mammals", "e.herptiles", "e.sm.birds", "e.vert", "e.lg.bones", "e.carrion"))
