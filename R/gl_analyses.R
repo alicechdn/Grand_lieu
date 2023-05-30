@@ -277,8 +277,14 @@ library(glmmTMB)
 #Avec migration 2 
 md_migr <- glmmTMB(ABONDANCE ~ annee_sc + migration_2 + (annee_sc:migration_2)+ (1|SITE) + (1|CODE),data = jdd_migr ,  family = nbinom2)
 smd_migr <- summary(md_migr) ; print(smd_migr)
+
+#Analyses des résidus : 
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = md_migr, plot = T)#met du temps 
+testZeroInflation(simulationOutput)#la ligne rouge indique la proportion attendue de zéros dans la distribution des résidus
+
 #Avec migration 3
-md_migr <- glmmTMB(ABONDANCE ~ annee_sc + migration_3 + (annee_sc:migration_3)+ (1|SITE) + (1|CODE),data = jdd_migr ,  family = nbinom2)
+md_migr3 <- glmmTMB(ABONDANCE ~ annee_sc + migration_3 + (annee_sc:migration_3)+ (1|SITE) + (1|CODE),data = jdd_migr ,  family = nbinom2)
 smd_migr <- summary(md_migr) ; print(smd_migr)
 
 
