@@ -282,7 +282,8 @@ md_migr <- glmmTMB(ABONDANCE ~ annee_sc + migration_3 + (annee_sc:migration_3)+ 
 smd_migr <- summary(md_migr) ; print(smd_migr)
 
 
-#comment faire avec les NA des migrations ? Quelles conclusions tirer de ces resultats ? 
+#comment faire avec les NA des migrations ? Quelles conclusions tirer de ces resultats ?
+#les diff migrations sont contradictoires entre elles, comment se decider ? 
 
 #### modele régime alimentaire #####
 
@@ -294,9 +295,8 @@ summary(jdd_RA)
 jdd_RA$Diet <- as.factor(jdd_RA$Diet)
 #Analyses : 
 library(glmmTMB)
-md_RA <- glmmTMB(ABONDANCE ~ annee_sc + Diet + (1|SITE) + (1|CODE),data = jdd_RA ,  family = nbinom2)
-smd_RA <- summary(md_RA)
-print(smd_RA)
+md_RA <- glmmTMB(ABONDANCE ~ annee_sc * Diet + (1|SITE) + (1|CODE),data = jdd_RA ,  family = nbinom2)
+smd_RA <- summary(md_RA) ; print(smd_RA)
 
 #Version + detaillee des regimes alimentaires : 
 select_rad <- subset(info_esp, select = c("ESPECE", "e.seeds.nuts.grain", "e.fruits.frugivory" , "e.vegitative", "e.invert", "e.fish", "e.v.sm.mammals", "e.lg.mammals", "e.herptiles", "e.sm.birds", "e.vert", "e.lg.bones", "e.carrion"))
@@ -358,6 +358,9 @@ summary(jdd_ssi)
 summary(select_ssi)
 summary(esp_data_ssi)
 plot(esp_data_ssi)
+hist(select_ssi$ssi)#pas tres loin du gaussien 
+hist(select_ssi$sti)
+
 
 #correlation : 
 library(PerformanceAnalytics)
@@ -371,7 +374,9 @@ plot(jdd_ssi$ABONDANCE~ jdd_ssi$annee_sc)
 #Connaitre le jdd : 
 table(select_ssi$ssi)
 table(select_ssi$sti)
-
+#distribution des donnees : 
+hist(select_ssi$ssi)#pas tres loin du gaussien 
+hist(select_ssi$sti)
 
 
 #Analyses : 
