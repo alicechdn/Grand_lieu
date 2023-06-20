@@ -14,7 +14,7 @@ summary(PE)
 #### a) Especes rares #### 
 occ_esp <- tapply(PE$ABONDANCE, PE$CODE, function(x) sum(x >0)) ; occ_esp #occurence de chaque esp
 rare_species_50 <- names(occ_esp[occ_esp < 50]) ; rare_species_50# liste des esp rares
-###### Filtrer le jeu de données pour exclure les espèces rares :
+###### Filtrer le jeu de donn?es pour exclure les esp?ces rares :
 PE2 <- PE[!(PE$CODE %in% rare_species_50),]
 head(PE2) ; summary(PE2)
 
@@ -57,9 +57,14 @@ pod_afc3 <- subset(pod_afc2, select = -c(Site, ZSC))
 #1ere version
 library(FactoMineR)
 afc_result <- PCA(pod_afc3)
-plotellipses(afc_result)
+afc_result
+afc_result$var
+afc_result$call
 #2eme version 
 library(factoextra)
 fviz_pca_biplot(afc_result, geom = "point", 
                 addEllipses = TRUE, label = "none")
+
+
+coordinates(afc_result)
 
